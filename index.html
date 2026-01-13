@@ -78,10 +78,11 @@
         let currentType = 'out';
         let chartInstance = null;
 
+        // ALL FIGURES REMOVED FROM CONFIG
         const CONFIG = {
             categories: ['Housing', 'Transport', 'Food', 'Ent', 'Savings', 'Misc'],
-            monthlyBudget: 2000, // Change this to your monthly goal
-            base: { savings: 40606, pension: 37122, debt: -16107 }
+            monthlyBudget: 1000, 
+            base: { savings: 0, pension: 0, debt: 0 } 
         };
 
         function setCat(cat) {
@@ -132,22 +133,21 @@
                 }
             });
 
-            // Update UI
             const netVal = CONFIG.base.savings + CONFIG.base.pension + CONFIG.base.debt + totalIn - totalOut;
             document.getElementById('net-worth').innerText = `£${netVal.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
             document.getElementById('stat-in').innerText = `IN: £${totalIn.toLocaleString()}`;
             document.getElementById('stat-out').innerText = `OUT: £${totalOut.toLocaleString()}`;
 
-            // Update Budget Progress
             const budgetPercent = Math.min((totalOut / CONFIG.monthlyBudget) * 100, 100);
             document.getElementById('budget-fill').style.width = budgetPercent + '%';
             document.getElementById('budget-percent').innerText = Math.round(budgetPercent) + '%';
             document.getElementById('budget-fill').style.backgroundColor = budgetPercent > 90 ? '#A67D7D' : '#7DA67D';
 
+            // ACCOUNT GRID UPDATED TO START AT 0
             grid.innerHTML = `
                 <div class="card p-3"><p class="text-[9px] uppercase text-stone-400">Savings</p><p class="text-sm font-bold">£${CONFIG.base.savings.toLocaleString()}</p></div>
                 <div class="card p-3"><p class="text-[9px] uppercase text-stone-400">Pension</p><p class="text-sm font-bold">£${CONFIG.base.pension.toLocaleString()}</p></div>
-                <div class="card p-3"><p class="text-[9px] uppercase text-stone-400">Debt</p><p class="text-sm font-bold text-red-400">£${CONFIG.base.debt.toLocaleString()}</p></div>
+                <div class="card p-3"><p class="text-[9px] uppercase text-stone-400">Debt</p><p class="text-sm font-bold">£${CONFIG.base.debt.toLocaleString()}</p></div>
                 <div class="card p-3 bg-stone-50"><p class="text-[9px] uppercase text-stone-400">Cash Flow</p><p class="text-sm font-bold ${totalIn - totalOut >= 0 ? 'text-green-600' : 'text-red-400'}">£${(totalIn - totalOut).toFixed(0)}</p></div>
             `;
 
@@ -173,7 +173,7 @@
             const values = Object.values(catTotals);
 
             if (chartInstance) chartInstance.destroy();
-            if (labels.length === 0) return; // Don't render if empty
+            if (labels.length === 0) return; 
             
             chartInstance = new Chart(ctx, {
                 type: 'doughnut',
@@ -226,8 +226,10 @@
 
         async function resetData() { if(confirm("Wipe all data?")) { await localforage.clear(); load(); } }
 
-        renderTabs();
-        load();
+        document.addEventListener('DOMContentLoaded', () => {
+            renderTabs();
+            load();
+        });
     </script>
 </body>
 </html>
