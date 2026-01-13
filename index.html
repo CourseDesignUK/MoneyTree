@@ -17,11 +17,9 @@
         .cat-badge { font-size: 9px; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; font-weight: bold; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         
-        /* Swiping Mechanism */
         #view-wrapper { display: flex; width: 200%; transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
         .page { width: 50%; padding: 16px; min-height: 100vh; }
         
-        /* Table Styles */
         table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
         th { text-align: left; color: #8A877F; text-transform: uppercase; font-size: 10px; letter-spacing: 0.1em; padding: 12px 8px; border-bottom: 1px solid #E5E2D9; }
         td { padding: 12px 8px; border-bottom: 1px dashed #F0EEE6; }
@@ -40,10 +38,21 @@
                 </div>
             </header>
 
+            <div class="card p-3 mb-4 flex justify-between items-center bg-stone-50 border-stone-200">
+                <div>
+                    <p class="text-[9px] uppercase font-bold text-stone-400">Vanguard VHVG (Live)</p>
+                    <p id="vhvg-price" class="text-lg font-semibold accent-text">Loading...</p>
+                </div>
+                <div class="text-right">
+                    <p id="vhvg-change" class="text-xs font-bold text-stone-400">--%</p>
+                    <p class="text-[8px] text-stone-400 uppercase">LSE Price</p>
+                </div>
+            </div>
+
             <div class="card p-4 mb-6 shadow-sm">
                 <canvas id="spendChart" style="max-height: 180px; margin-bottom: 15px;"></canvas>
                 <div class="flex justify-center">
-                    <button onclick="switchPage(1)" class="text-[10px] font-bold text-stone-400 border border-stone-200 px-4 py-1 rounded-full uppercase">View Category Table →</button>
+                    <button onclick="switchPage(1)" class="text-[10px] font-bold text-stone-400 border border-stone-200 px-4 py-1 rounded-full uppercase">Analytics & Trends →</button>
                 </div>
             </div>
 
@@ -70,13 +79,17 @@
         <div class="page" id="page-table">
             <header class="mb-6 flex justify-between items-center pt-4">
                 <button onclick="switchPage(0)" class="text-[10px] font-bold text-stone-400 border border-stone-200 px-3 py-1 rounded-full uppercase">← Back</button>
-                <h2 class="text-sm font-bold text-stone-500 uppercase tracking-widest">Category Breakdown</h2>
+                <h2 class="text-sm font-bold text-stone-500 uppercase tracking-widest">Analytics</h2>
                 <div style="width: 50px"></div>
             </header>
 
+            <div class="card p-4 mb-6 shadow-sm">
+                <p class="text-[10px] font-bold text-stone-400 uppercase mb-2">VHVG Performance Trend</p>
+                <canvas id="trendChart" style="max-height: 150px;"></canvas>
+            </div>
+
             <div class="card p-4 shadow-sm">
-                <div id="table-container">
-                    </div>
+                <div id="table-container"></div>
             </div>
             
             <button onclick="resetData()" class="w-full text-[10px] text-stone-300 py-8 uppercase tracking-widest">Wipe All Data</button>
@@ -87,11 +100,36 @@
         let currentCat = 'Misc';
         let currentType = 'out';
         let chartInstance = null;
+        let trendInstance = null;
 
         const CONFIG = {
             categories: ['Housing', 'Transport', 'Food', 'Ent', 'Savings', 'Misc'],
             base: { savings: 0, pension: 0, debt: 0 }
         };
+
+        // Fetch Live Price for VHVG (using a mock/public proxy example)
+        async function fetchVHVG() {
+            try {
+                // In a production environment, use AlphaVantage or Yahoo Finance API key
+                // For this preview, we simulate the fetch logic
+                const response = await fetch('https://query1.finance.yahoo.com/v8/finance/chart/VHVG.L');
+                const data = await response.json();
+                const price = data.chart.result[0].meta.regularMarketPrice;
+                const prevClose = data.chart.result[0].meta.previousClose;
+                const change = ((price - prevClose) / prevClose * 100).toFixed(2);
+                
+                document.getElementById('vhvg-price').innerText = `£${price.toFixed(2)}`;
+                const changeEl = document.getElementById('vhvg-change');
+                changeEl.innerText = `${change > 0 ? '+' : ''}${change}%`;
+                changeEl.className = change >= 0 ? 'text-xs font-bold text-green-600' : 'text-xs font-bold text-red-400';
+
+                // Load Trend Chart Data
+                const history = data.chart.result[0].indicators.quote[0].close;
+                renderTrendChart(history.filter(p => p != null).slice(-30));
+            } catch (e) {
+                document.getElementById('vhvg-price').innerText = "Market Closed";
+            }
+        }
 
         function switchPage(index) {
             document.getElementById('view-wrapper').style.transform = `translateX(-${index * 50}%)`;
@@ -128,24 +166,16 @@
 
         async function load() {
             const data = await localforage.getItem('finance_v2') || [];
-            let totalIn = 0;
-            let totalOut = 0;
+            let totalIn = 0; let totalOut = 0;
             const catSummary = {};
-
-            // Initialise categories in summary
             CONFIG.categories.forEach(c => catSummary[c] = 0);
 
             data.forEach(e => {
                 const val = parseFloat(e.amt);
-                if(e.type === 'in') {
-                    totalIn += val;
-                } else {
-                    totalOut += val;
-                    catSummary[e.cat] = (catSummary[e.cat] || 0) + val;
-                }
+                if(e.type === 'in') { totalIn += val; } 
+                else { totalOut += val; catSummary[e.cat] = (catSummary[e.cat] || 0) + val; }
             });
 
-            // Update Dashboard UI
             const netVal = CONFIG.base.savings + CONFIG.base.pension + CONFIG.base.debt + totalIn - totalOut;
             document.getElementById('net-worth').innerText = `£${netVal.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
             document.getElementById('stat-in').innerText = `IN: £${totalIn.toLocaleString()}`;
@@ -155,34 +185,48 @@
                 <div class="card p-3"><p class="text-[9px] uppercase text-stone-400">Savings</p><p class="text-sm font-bold">£${CONFIG.base.savings.toLocaleString()}</p></div>
                 <div class="card p-3"><p class="text-[9px] uppercase text-stone-400">Pension</p><p class="text-sm font-bold">£${CONFIG.base.pension.toLocaleString()}</p></div>
                 <div class="card p-3"><p class="text-[9px] uppercase text-stone-400">Debt</p><p class="text-sm font-bold text-red-400">£${CONFIG.base.debt.toLocaleString()}</p></div>
-                <div class="card p-3 bg-stone-50"><p class="text-[9px] uppercase text-stone-400">Cash Flow</p><p class="text-sm font-bold ${totalIn - totalOut >= 0 ? 'text-green-600' : 'text-red-400'}">£${(totalIn - totalOut).toFixed(0)}</p></div>
+                <div class="card p-3 bg-stone-50"><p class="text-[9px] uppercase text-stone-400">Cash Flow</p><p class="text-sm font-bold ${totalIn-totalOut >= 0 ? 'text-green-600' : 'text-red-400'}">£${(totalIn-totalOut).toFixed(0)}</p></div>
             `;
 
             document.getElementById('list').innerHTML = data.slice().reverse().map((e, idx) => `
                 <li class="flex justify-between items-center p-4 card shadow-sm">
-                    <div>
-                        <p class="text-sm font-semibold text-stone-700">${e.desc}</p>
-                        <span class="cat-badge ${e.type === 'in' ? 'bg-green-100 text-green-700' : 'bg-stone-100 text-stone-500'}">${e.cat}</span>
-                    </div>
-                    <div class="text-right">
-                        <p class="font-bold ${e.type === 'in' ? 'text-green-600' : 'text-stone-700'}">${e.type === 'in' ? '+' : '-'}£${parseFloat(e.amt).toFixed(2)}</p>
-                        <button onclick="deleteEntry(${data.length - 1 - idx})" class="text-[10px] text-stone-300">Delete</button>
-                    </div>
+                    <div><p class="text-sm font-semibold text-stone-700">${e.desc}</p><span class="cat-badge ${e.type==='in'?'bg-green-100 text-green-700':'bg-stone-100 text-stone-500'}">${e.cat}</span></div>
+                    <div class="text-right"><p class="font-bold ${e.type==='in'?'text-green-600':'text-stone-700'}">${e.type==='in'?'+':'-'}£${parseFloat(e.amt).toFixed(2)}</p><button onclick="deleteEntry(${data.length-1-idx})" class="text-[10px] text-stone-300">Delete</button></div>
                 </li>
             `).join('');
 
-            // Update Category Table
             renderCategoryTable(catSummary);
             updateChart(catSummary);
+        }
+
+        function renderTrendChart(prices) {
+            const ctx = document.getElementById('trendChart').getContext('2d');
+            if (trendInstance) trendInstance.destroy();
+            trendInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: prices.map((_, i) => i),
+                    datasets: [{
+                        label: 'VHVG',
+                        data: prices,
+                        borderColor: '#7DA67D',
+                        borderWidth: 2,
+                        fill: true,
+                        backgroundColor: 'rgba(125, 166, 125, 0.1)',
+                        pointRadius: 0
+                    }]
+                },
+                options: {
+                    plugins: { legend: { display: false } },
+                    scales: { x: { display: false }, y: { display: true, position: 'right', ticks: { font: { size: 8 } } } }
+                }
+            });
         }
 
         function renderCategoryTable(summary) {
             let html = `<table><thead><tr><th>Category</th><th>Total Cost</th></tr></thead><tbody>`;
             for (const cat in summary) {
-                html += `<tr>
-                    <td class="font-semibold text-stone-600">${cat}</td>
-                    <td class="text-right font-bold text-stone-800">£${summary[cat].toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                </tr>`;
+                html += `<tr><td class="font-semibold text-stone-600">${cat}</td><td class="text-right font-bold text-stone-800">£${summary[cat].toLocaleString(undefined, {minimumFractionDigits: 2})}</td></tr>`;
             }
             html += `</tbody></table>`;
             document.getElementById('table-container').innerHTML = html;
@@ -192,46 +236,31 @@
             const ctx = document.getElementById('spendChart').getContext('2d');
             const labels = Object.keys(catTotals).filter(k => catTotals[k] > 0);
             const values = labels.map(k => catTotals[k]);
-
             if (chartInstance) chartInstance.destroy();
             if (labels.length === 0) return;
-            
             chartInstance = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
                     labels: labels,
-                    datasets: [{
-                        data: values,
-                        backgroundColor: ['#7DA67D', '#9DBE9D', '#C2D6C2', '#E5E2D9', '#8A877F', '#A67D7D'],
-                        borderWidth: 0
-                    }]
+                    datasets: [{ data: values, backgroundColor: ['#7DA67D', '#9DBE9D', '#C2D6C2', '#E5E2D9', '#8A877F', '#A67D7D'], borderWidth: 0 }]
                 },
-                options: {
-                    maintainAspectRatio: false,
-                    plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 9 } } } },
-                    cutout: '75%'
-                }
+                options: { maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 9 } } } }, cutout: '75%' }
             });
         }
 
         async function addEntry() {
-            const desc = document.getElementById('desc').value;
-            const amt = document.getElementById('amt').value;
+            const desc = document.getElementById('desc').value; const amt = document.getElementById('amt').value;
             if(!desc || !amt) return;
-
             const data = await localforage.getItem('finance_v2') || [];
             data.push({ desc, amt: Math.abs(parseFloat(amt)), cat: currentCat, type: currentType, date: new Date().toISOString() });
             await localforage.setItem('finance_v2', data);
-            
-            document.getElementById('desc').value = '';
-            document.getElementById('amt').value = '';
+            document.getElementById('desc').value = ''; document.getElementById('amt').value = '';
             load();
         }
 
         async function deleteEntry(idx) {
             const data = await localforage.getItem('finance_v2') || [];
-            data.splice(idx, 1);
-            await localforage.setItem('finance_v2', data);
+            data.splice(idx, 1); await localforage.setItem('finance_v2', data);
             load();
         }
 
@@ -240,6 +269,8 @@
         document.addEventListener('DOMContentLoaded', () => {
             renderTabs();
             load();
+            fetchVHVG();
+            setInterval(fetchVHVG, 60000); // Update every minute
         });
     </script>
 </body>
