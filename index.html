@@ -23,9 +23,25 @@
         table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
         th { text-align: left; color: #8A877F; text-transform: uppercase; font-size: 10px; letter-spacing: 0.1em; padding: 12px 8px; border-bottom: 1px solid #E5E2D9; }
         td { padding: 12px 8px; border-bottom: 1px dashed #F0EEE6; }
+
+        #passcode-screen { position: fixed; inset: 0; background: #F9F7F2; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .pin-dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid #E5E2D9; transition: background 0.2s; }
+        .pin-dot.filled { background: #7DA67D; border-color: #7DA67D; }
+        .keypad-btn { width: 70px; height: 70px; border-radius: 50%; background: white; border: 1px solid #E5E2D9; font-size: 1.5rem; display: flex; align-items: center; justify-content: center; color: #5B7A5B; }
     </style>
 </head>
 <body>
+
+    <div id="passcode-screen" class="hidden">
+        <h2 class="text-stone-400 uppercase tracking-widest text-xs font-bold mb-8">Enter Passcode</h2>
+        <div class="flex gap-4 mb-12"><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div></div>
+        <div class="grid grid-cols-3 gap-6">
+            <button onclick="pressKey('1')" class="keypad-btn">1</button><button onclick="pressKey('2')" class="keypad-btn">2</button><button onclick="pressKey('3')" class="keypad-btn">3</button>
+            <button onclick="pressKey('4')" class="keypad-btn">4</button><button onclick="pressKey('5')" class="keypad-btn">5</button><button onclick="pressKey('6')" class="keypad-btn">6</button>
+            <button onclick="pressKey('7')" class="keypad-btn">7</button><button onclick="pressKey('8')" class="keypad-btn">8</button><button onclick="pressKey('9')" class="keypad-btn">9</button>
+            <div></div><button onclick="pressKey('0')" class="keypad-btn">0</button><button onclick="pressKey('back')" class="keypad-btn text-xs font-bold">DEL</button>
+        </div>
+    </div>
 
     <div id="view-wrapper">
         <div class="page" id="page-dashboard">
@@ -33,40 +49,42 @@
                 <h1 class="text-[10px] uppercase tracking-[0.2em] text-stone-400 font-bold mb-1">Estimated Net Worth</h1>
                 <div id="net-worth" class="text-4xl font-light accent-text">£0.00</div>
                 <div class="flex justify-center gap-4 mt-2 text-[11px] font-bold">
-                    <span id="stat-in" class="text-green-600">IN: £0.00</span>
-                    <span id="stat-out" class="text-red-400">OUT: £0.00</span>
+                    <span id="stat-in" class="text-green-600">INCOME: £0.00</span>
+                    <span id="stat-out" class="text-red-400">EXPENSES: £0.00</span>
                 </div>
             </header>
 
             <div class="card p-3 mb-4 flex justify-between items-center bg-stone-50 border-stone-200">
                 <div>
-                    <p class="text-[9px] uppercase font-bold text-stone-400">Vanguard VHVG (LSE)</p>
+                    <p class="text-[9px] uppercase font-bold text-stone-400">VHVG (Live)</p>
                     <p id="vhvg-price" class="text-xl font-semibold accent-text">£0.00</p>
-                    <p id="last-updated" class="text-[8px] text-stone-400 uppercase mt-1">Syncing...</p>
                 </div>
                 <div class="text-right">
                     <p id="vhvg-change" class="text-sm font-bold text-stone-400">--%</p>
-                    <div id="vhvg-indicator" class="inline-block w-2 h-2 rounded-full bg-stone-200"></div>
+                    <p id="last-updated" class="text-[7px] text-stone-400 uppercase">Syncing...</p>
                 </div>
             </div>
+
+            <div id="wealth-grid" class="grid grid-cols-3 gap-2 mb-6 text-center">
+                </div>
 
             <div class="card p-4 mb-6 shadow-sm">
-                <canvas id="spendChart" style="max-height: 180px; margin-bottom: 15px;"></canvas>
-                <div class="flex justify-center">
-                    <button onclick="switchPage(1)" class="text-[10px] font-bold text-stone-400 border border-stone-200 px-4 py-1 rounded-full uppercase">Vault & Data →</button>
+                <p class="text-[10px] uppercase tracking-wider text-stone-400 font-bold mb-4 text-center">Monthly Spending Distribution</p>
+                <canvas id="spendChart" style="max-height: 180px;"></canvas>
+                <div class="flex justify-center mt-4">
+                    <button onclick="switchPage(1)" class="text-[10px] font-bold text-stone-400 border border-stone-200 px-4 py-1 rounded-full uppercase">Analytics & Vault →</button>
                 </div>
             </div>
 
-            <div id="account-grid" class="grid grid-cols-2 gap-2 mb-6 text-center text-stone-700"></div>
-
             <div class="card p-5 mb-6 shadow-sm">
+                <p class="text-[10px] uppercase text-stone-400 font-bold mb-3">Add Monthly Transaction</p>
                 <div class="flex gap-2 overflow-x-auto pb-3 mb-3 no-scrollbar" id="cat-selector"></div>
                 <div class="space-y-3">
                     <div class="flex bg-stone-100 p-1 rounded-xl">
                         <button onclick="setType('out')" id="tgl-out" class="flex-1 py-2 rounded-lg text-xs font-bold transition bg-white shadow-sm text-red-500">EXPENSE</button>
                         <button onclick="setType('in')" id="tgl-in" class="flex-1 py-2 rounded-lg text-xs font-bold transition text-stone-400">INCOME</button>
                     </div>
-                    <input id="desc" type="text" placeholder="Description" class="w-full bg-stone-50 p-3 rounded-xl outline-none border border-stone-100">
+                    <input id="desc" type="text" placeholder="Description (e.g. Groceries)" class="w-full bg-stone-50 p-3 rounded-xl outline-none border border-stone-100">
                     <div class="flex gap-2">
                         <input id="amt" type="number" inputmode="decimal" placeholder="0.00" class="w-full bg-stone-50 p-3 rounded-xl outline-none border border-stone-100 text-lg">
                         <button onclick="addEntry()" id="add-btn" class="btn-primary px-6 font-bold shadow-md active:scale-95 transition">Add</button>
@@ -85,23 +103,22 @@
             </header>
 
             <div class="card p-5 mb-6 shadow-sm space-y-4">
-                <p class="text-[10px] font-bold text-stone-400 uppercase">Privacy & Backup</p>
+                <p class="text-[10px] font-bold text-stone-400 uppercase">Security & Backup</p>
+                <button onclick="setupPasscode()" class="w-full text-[10px] font-bold bg-stone-100 text-stone-600 p-3 rounded-xl uppercase">Set PIN</button>
                 <div class="grid grid-cols-2 gap-3">
-                    <button onclick="exportJSON()" class="text-[10px] font-bold bg-stone-100 text-stone-600 p-3 rounded-xl uppercase hover:bg-stone-200 transition">Export JSON</button>
-                    <label class="text-[10px] font-bold bg-stone-100 text-stone-600 p-3 rounded-xl uppercase text-center cursor-pointer hover:bg-stone-200 transition">
-                        Import JSON
-                        <input type="file" id="import-file" class="hidden" onchange="importJSON(event)">
+                    <button onclick="exportJSON()" class="text-[10px] font-bold bg-stone-100 text-stone-600 p-3 rounded-xl uppercase">Export JSON</button>
+                    <label class="text-[10px] font-bold bg-stone-100 text-stone-600 p-3 rounded-xl uppercase text-center cursor-pointer">
+                        Import JSON <input type="file" id="import-file" class="hidden" onchange="importJSON(event)">
                     </label>
                 </div>
-                <p class="text-[9px] text-stone-400 leading-tight">Data is stored locally in your browser. Export a backup frequently to ensure you don't lose your history.</p>
             </div>
 
-            <div class="card p-4 mb-6 shadow-sm">
-                <p class="text-[10px] font-bold text-stone-400 uppercase mb-4">Spending by Category</p>
+            <div class="card p-4 shadow-sm">
+                <p class="text-[10px] font-bold text-stone-400 uppercase mb-4">Detailed breakdown</p>
                 <div id="table-container"></div>
             </div>
             
-            <button onclick="resetData()" class="w-full text-[10px] text-red-300 py-8 uppercase tracking-widest font-bold">Wipe Local Device Data</button>
+            <button onclick="resetData()" class="w-full text-[10px] text-red-300 py-8 uppercase tracking-widest font-bold">Wipe Device Data</button>
         </div>
     </div>
 
@@ -110,165 +127,159 @@
         let currentType = 'out';
         let chartInstance = null;
         let lastKnownPrice = 0;
+        let inputPin = "";
 
+        // --- EDIT YOUR BALANCES HERE ---
         const CONFIG = {
-            categories: ['Housing', 'Transport', 'Food', 'Ent', 'Savings', 'Misc'],
-            base: { savings: 0, pension: 0, debt: 0 },
+            monthlyCategories: ['Housing', 'Food', 'Transport', 'Ent', 'Bills', 'Misc'],
+            wealth: {
+                savings: 0,
+                pension: 0,
+                debt: 0
+            },
             vhvgUnits: 0 
         };
 
-        // --- VAULT LOGIC ---
-        async function exportJSON() {
-            const data = await localforage.getItem('finance_v2') || [];
-            const backup = { timestamp: new Date().toISOString(), payload: data };
-            const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `finance_backup_${new Date().toISOString().split('T')[0]}.json`;
-            a.click();
+        async function checkSecurity() {
+            const savedPin = await localforage.getItem('app_pin');
+            if (savedPin) document.getElementById('passcode-screen').classList.remove('hidden');
         }
 
-        async function importJSON(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                try {
-                    const imported = JSON.parse(e.target.result);
-                    if (imported.payload && confirm("Overwrite current local data with this backup?")) {
-                        await localforage.setItem('finance_v2', imported.payload);
-                        load();
-                        alert("Vault Restored");
-                    }
-                } catch (err) { alert("Invalid File Format"); }
-            };
-            reader.readAsText(file);
+        async function pressKey(key) {
+            const savedPin = await localforage.getItem('app_pin');
+            const dots = document.querySelectorAll('.pin-dot');
+            if (key === 'back') inputPin = inputPin.slice(0, -1);
+            else if (inputPin.length < 4) inputPin += key;
+            dots.forEach((dot, i) => dot.classList.toggle('filled', i < inputPin.length));
+            if (inputPin.length === 4) {
+                if (inputPin === savedPin) {
+                    document.getElementById('passcode-screen').classList.add('hidden');
+                    inputPin = "";
+                } else { alert("Incorrect PIN"); inputPin = ""; dots.forEach(d => d.classList.remove('filled')); }
+            }
         }
 
-        // --- CORE LOGIC ---
+        async function setupPasscode() {
+            const pin = prompt("Set 4-digit PIN (leave empty to disable):");
+            if (pin === null) return;
+            await localforage.setItem('app_pin', pin || null);
+            alert(pin ? "PIN Set" : "PIN Removed");
+        }
+
         async function fetchVHVG() {
             try {
-                const response = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/VHVG.L`);
-                const data = await response.json();
+                const res = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/VHVG.L`);
+                const data = await res.json();
                 const quote = data.chart.result[0].meta;
                 lastKnownPrice = quote.regularMarketPrice;
                 document.getElementById('vhvg-price').innerText = `£${lastKnownPrice.toFixed(2)}`;
-                document.getElementById('last-updated').innerText = `Last Known: ${new Date().toLocaleTimeString()}`;
+                document.getElementById('last-updated').innerText = `LSE: ${new Date().toLocaleTimeString()}`;
                 const change = ((lastKnownPrice - quote.previousClose) / quote.previousClose * 100).toFixed(2);
-                const changeEl = document.getElementById('vhvg-change');
-                changeEl.innerText = `${change > 0 ? '+' : ''}${change}%`;
-                changeEl.className = change >= 0 ? 'text-sm font-bold text-green-600' : 'text-sm font-bold text-red-400';
+                document.getElementById('vhvg-change').innerText = `${change > 0 ? '+' : ''}${change}%`;
+                document.getElementById('vhvg-change').className = change >= 0 ? 'text-sm font-bold text-green-600' : 'text-sm font-bold text-red-400';
                 load();
             } catch (e) { document.getElementById('last-updated').innerText = "Syncing..."; }
         }
 
-        function switchPage(index) {
-            document.getElementById('view-wrapper').style.transform = `translateX(-${index * 50}%)`;
-        }
-
-        function setCat(cat) { currentCat = cat; renderTabs(); }
-
-        function setType(type) {
-            currentType = type;
-            const btnIn = document.getElementById('tgl-in');
-            const btnOut = document.getElementById('tgl-out');
-            if(type === 'in') {
-                btnIn.className = "flex-1 py-2 rounded-lg text-xs font-bold transition bg-white shadow-sm text-green-600";
-                btnOut.className = "flex-1 py-2 rounded-lg text-xs font-bold transition text-stone-400";
-                document.getElementById('add-btn').style.backgroundColor = "#7DA67D";
-            } else {
-                btnOut.className = "flex-1 py-2 rounded-lg text-xs font-bold transition bg-white shadow-sm text-red-500";
-                btnIn.className = "flex-1 py-2 rounded-lg text-xs font-bold transition text-stone-400";
-                document.getElementById('add-btn').style.backgroundColor = "#A67D7D";
-            }
-        }
+        function switchPage(index) { document.getElementById('view-wrapper').style.transform = `translateX(-${index * 50}%)`; }
 
         function renderTabs() {
-            document.getElementById('cat-selector').innerHTML = CONFIG.categories.map(c => 
+            document.getElementById('cat-selector').innerHTML = CONFIG.monthlyCategories.map(c => 
                 `<div class="tab ${currentCat === c ? 'active' : ''}" onclick="setCat('${c}')">${c}</div>`
             ).join('');
+        }
+        function setCat(c) { currentCat = c; renderTabs(); }
+        function setType(t) {
+            currentType = t;
+            document.getElementById('tgl-in').className = t==='in' ? "flex-1 py-2 rounded-lg text-xs font-bold transition bg-white shadow-sm text-green-600" : "flex-1 py-2 rounded-lg text-xs font-bold transition text-stone-400";
+            document.getElementById('tgl-out').className = t==='out' ? "flex-1 py-2 rounded-lg text-xs font-bold transition bg-white shadow-sm text-red-500" : "flex-1 py-2 rounded-lg text-xs font-bold transition text-stone-400";
+            document.getElementById('add-btn').style.backgroundColor = t==='in' ? "#7DA67D" : "#A67D7D";
         }
 
         async function load() {
             const data = await localforage.getItem('finance_v2') || [];
-            let totalIn = 0; let totalOut = 0;
-            const catSummary = {};
-            CONFIG.categories.forEach(c => catSummary[c] = 0);
+            let mIn = 0; let mOut = 0;
+            const catSum = {};
+            CONFIG.monthlyCategories.forEach(c => catSum[c] = 0);
 
             data.forEach(e => {
-                const val = parseFloat(e.amt);
-                if(e.type === 'in') totalIn += val; 
-                else { totalOut += val; catSummary[e.cat] = (catSummary[e.cat] || 0) + val; }
+                const v = parseFloat(e.amt);
+                if(e.type === 'in') mIn += v;
+                else { mOut += v; catSum[e.cat] = (catSum[e.cat] || 0) + v; }
             });
 
-            const investmentValue = lastKnownPrice * CONFIG.vhvgUnits;
-            const netVal = CONFIG.base.savings + CONFIG.base.pension + CONFIG.base.debt + investmentValue + totalIn - totalOut;
-            
-            document.getElementById('net-worth').innerText = `£${netVal.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-            document.getElementById('stat-in').innerText = `IN: £${totalIn.toLocaleString()}`;
-            document.getElementById('stat-out').innerText = `OUT: £${totalOut.toLocaleString()}`;
+            const vhvValue = lastKnownPrice * CONFIG.vhvgUnits;
+            const net = CONFIG.wealth.savings + CONFIG.wealth.pension + CONFIG.wealth.debt + vhvValue + mIn - mOut;
 
-            document.getElementById('account-grid').innerHTML = `
-                <div class="card p-3"><p class="text-[9px] uppercase text-stone-400">Savings</p><p class="text-sm font-bold">£${CONFIG.base.savings.toLocaleString()}</p></div>
-                <div class="card p-3"><p class="text-[9px] uppercase text-stone-400">Investments</p><p class="text-sm font-bold">£${investmentValue.toLocaleString(undefined, {maximumFractionDigits:0})}</p></div>
-                <div class="card p-3"><p class="text-[9px] uppercase text-stone-400">Debt</p><p class="text-sm font-bold text-red-400">£${CONFIG.base.debt.toLocaleString()}</p></div>
-                <div class="card p-3 bg-stone-50"><p class="text-[9px] uppercase text-stone-400">Flow</p><p class="text-sm font-bold ${totalIn-totalOut >= 0 ? 'text-green-600' : 'text-red-400'}">£${(totalIn-totalOut).toFixed(0)}</p></div>
+            document.getElementById('net-worth').innerText = `£${net.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            document.getElementById('stat-in').innerText = `INCOME: £${mIn.toLocaleString()}`;
+            document.getElementById('stat-out').innerText = `EXPENSES: £${mOut.toLocaleString()}`;
+
+            document.getElementById('wealth-grid').innerHTML = `
+                <div class="card p-2"><p class="text-[8px] uppercase text-stone-400">Savings</p><p class="text-xs font-bold">£${CONFIG.wealth.savings.toLocaleString()}</p></div>
+                <div class="card p-2"><p class="text-[8px] uppercase text-stone-400">Pension</p><p class="text-xs font-bold">£${CONFIG.wealth.pension.toLocaleString()}</p></div>
+                <div class="card p-2"><p class="text-[8px] uppercase text-stone-400">Debt</p><p class="text-xs font-bold text-red-400">£${CONFIG.wealth.debt.toLocaleString()}</p></div>
             `;
 
             document.getElementById('list').innerHTML = data.slice().reverse().map((e, idx) => `
                 <li class="flex justify-between items-center p-4 card shadow-sm">
-                    <div><p class="text-sm font-semibold text-stone-700">${e.desc}</p><span class="cat-badge ${e.type==='in'?'bg-green-100 text-green-700':'bg-stone-100 text-stone-500'}">${e.cat}</span></div>
-                    <div class="text-right"><p class="font-bold ${e.type==='in'?'text-green-600':'text-stone-700'}">${e.type==='in'?'+':'-'}£${parseFloat(e.amt).toFixed(2)}</p><button onclick="deleteEntry(${data.length-1-idx})" class="text-[10px] text-stone-300">Delete</button></div>
+                    <div><p class="text-sm font-semibold text-stone-700">${e.desc}</p><span class="cat-badge bg-stone-100 text-stone-500">${e.cat}</span></div>
+                    <div class="text-right"><p class="font-bold ${e.type==='in'?'text-green-600':'text-stone-700'}">£${v.toFixed(2)}</p><button onclick="deleteEntry(${data.length-1-idx})" class="text-[10px] text-stone-300">Delete</button></div>
                 </li>
             `).join('');
 
-            renderCategoryTable(catSummary);
-            updateChart(catSummary);
+            renderTable(catSum);
+            updateChart(catSum);
         }
 
-        function renderCategoryTable(summary) {
-            let html = `<table><thead><tr><th>Category</th><th>Total</th></tr></thead><tbody>`;
-            for (const cat in summary) {
-                html += `<tr><td class="font-semibold text-stone-600">${cat}</td><td class="text-right font-bold text-stone-800">£${summary[cat].toLocaleString(undefined, {minimumFractionDigits: 2})}</td></tr>`;
-            }
-            document.getElementById('table-container').innerHTML = html + `</tbody></table>`;
+        function renderTable(sum) {
+            let h = `<table><thead><tr><th>Category</th><th>Total</th></tr></thead><tbody>`;
+            for(let c in sum) h += `<tr><td class="font-semibold text-stone-600">${c}</td><td class="text-right font-bold text-stone-800">£${sum[c].toLocaleString()}</td></tr>`;
+            document.getElementById('table-container').innerHTML = h + `</tbody></table>`;
         }
 
-        function updateChart(catTotals) {
+        function updateChart(sums) {
             const ctx = document.getElementById('spendChart').getContext('2d');
-            const labels = Object.keys(catTotals).filter(k => catTotals[k] > 0);
-            const values = labels.map(k => catTotals[k]);
+            const labels = Object.keys(sums).filter(k => sums[k] > 0);
+            const values = labels.map(k => sums[k]);
             if (chartInstance) chartInstance.destroy();
-            if (labels.length === 0) return;
             chartInstance = new Chart(ctx, {
                 type: 'doughnut',
                 data: { labels, datasets: [{ data: values, backgroundColor: ['#7DA67D', '#9DBE9D', '#C2D6C2', '#E5E2D9', '#8A877F', '#A67D7D'], borderWidth: 0 }] },
-                options: { maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 10, font: { size: 9 } } } }, cutout: '75%' }
+                options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } }, cutout: '75%' }
             });
         }
 
         async function addEntry() {
-            const desc = document.getElementById('desc').value; const amt = document.getElementById('amt').value;
-            if(!desc || !amt) return;
+            const d = document.getElementById('desc').value; const a = document.getElementById('amt').value;
+            if(!d || !a) return;
             const data = await localforage.getItem('finance_v2') || [];
-            data.push({ desc, amt: Math.abs(parseFloat(amt)), cat: currentCat, type: currentType, date: new Date().toISOString() });
+            data.push({ desc: d, amt: Math.abs(parseFloat(a)), cat: currentCat, type: currentType, date: new Date().toISOString() });
             await localforage.setItem('finance_v2', data);
             document.getElementById('desc').value = ''; document.getElementById('amt').value = '';
             load();
         }
 
-        async function deleteEntry(idx) {
-            const data = await localforage.getItem('finance_v2') || [];
-            data.splice(idx, 1); await localforage.setItem('finance_v2', data);
-            load();
+        async function deleteEntry(i) {
+            const d = await localforage.getItem('finance_v2');
+            d.splice(i, 1); await localforage.setItem('finance_v2', d); load();
         }
 
-        async function resetData() { if(confirm("Wipe all data?")) { await localforage.clear(); load(); } }
+        async function exportJSON() {
+            const d = await localforage.getItem('finance_v2');
+            const b = new Blob([JSON.stringify({payload: d})], {type:'application/json'});
+            const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download='backup.json'; a.click();
+        }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            renderTabs(); load(); fetchVHVG(); setInterval(fetchVHVG, 300000);
-        });
+        async function importJSON(e) {
+            const f = e.target.files[0]; const r = new FileReader();
+            r.onload = async (ev) => { const i = JSON.parse(ev.target.result); await localforage.setItem('finance_v2', i.payload); load(); };
+            r.readAsText(f);
+        }
+
+        async function resetData() { if(confirm("Wipe all data?")) { await localforage.clear(); location.reload(); } }
+
+        document.addEventListener('DOMContentLoaded', () => { checkSecurity(); renderTabs(); load(); fetchVHVG(); setInterval(fetchVHVG, 300000); });
     </script>
 </body>
 </html>
