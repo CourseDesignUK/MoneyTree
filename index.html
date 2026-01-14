@@ -40,19 +40,20 @@
 
             <div class="card p-3 mb-4 flex justify-between items-center bg-stone-50 border-stone-200">
                 <div>
-                    <p class="text-[9px] uppercase font-bold text-stone-400">Vanguard VHVG (Live)</p>
-                    <p id="vhvg-price" class="text-lg font-semibold accent-text">Loading...</p>
+                    <p class="text-[9px] uppercase font-bold text-stone-400">Vanguard VHVG (LSE)</p>
+                    <p id="vhvg-price" class="text-xl font-semibold accent-text">£0.00</p>
+                    <p id="last-updated" class="text-[8px] text-stone-400 uppercase mt-1">Syncing...</p>
                 </div>
                 <div class="text-right">
-                    <p id="vhvg-change" class="text-xs font-bold text-stone-400">--%</p>
-                    <p class="text-[8px] text-stone-400 uppercase">LSE Price</p>
+                    <p id="vhvg-change" class="text-sm font-bold text-stone-400">--%</p>
+                    <div id="vhvg-indicator" class="inline-block w-2 h-2 rounded-full bg-stone-200"></div>
                 </div>
             </div>
 
             <div class="card p-4 mb-6 shadow-sm">
                 <canvas id="spendChart" style="max-height: 180px; margin-bottom: 15px;"></canvas>
                 <div class="flex justify-center">
-                    <button onclick="switchPage(1)" class="text-[10px] font-bold text-stone-400 border border-stone-200 px-4 py-1 rounded-full uppercase">Analytics & Trends →</button>
+                    <button onclick="switchPage(1)" class="text-[10px] font-bold text-stone-400 border border-stone-200 px-4 py-1 rounded-full uppercase">Settings & Data →</button>
                 </div>
             </div>
 
@@ -79,20 +80,28 @@
         <div class="page" id="page-table">
             <header class="mb-6 flex justify-between items-center pt-4">
                 <button onclick="switchPage(0)" class="text-[10px] font-bold text-stone-400 border border-stone-200 px-3 py-1 rounded-full uppercase">← Back</button>
-                <h2 class="text-sm font-bold text-stone-500 uppercase tracking-widest">Analytics</h2>
+                <h2 class="text-sm font-bold text-stone-500 uppercase tracking-widest">Vault & Data</h2>
                 <div style="width: 50px"></div>
             </header>
 
-            <div class="card p-4 mb-6 shadow-sm">
-                <p class="text-[10px] font-bold text-stone-400 uppercase mb-2">VHVG Performance Trend</p>
-                <canvas id="trendChart" style="max-height: 150px;"></canvas>
+            <div class="card p-5 mb-6 shadow-sm space-y-4">
+                <p class="text-[10px] font-bold text-stone-400 uppercase">Privacy & Backup</p>
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="exportJSON()" class="text-[10px] font-bold bg-stone-100 text-stone-600 p-3 rounded-xl uppercase hover:bg-stone-200 transition">Export Backup</button>
+                    <label class="text-[10px] font-bold bg-stone-100 text-stone-600 p-3 rounded-xl uppercase text-center cursor-pointer hover:bg-stone-200 transition">
+                        Import Backup
+                        <input type="file" id="import-file" class="hidden" onchange="importJSON(event)">
+                    </label>
+                </div>
+                <p class="text-[9px] text-stone-400 leading-tight">Your data is stored locally. Export a backup file to move your data to a new device or browser.</p>
             </div>
 
-            <div class="card p-4 shadow-sm">
+            <div class="card p-4 mb-6 shadow-sm">
+                <p class="text-[10px] font-bold text-stone-400 uppercase mb-4">Category Breakdown</p>
                 <div id="table-container"></div>
             </div>
             
-            <button onclick="resetData()" class="w-full text-[10px] text-stone-300 py-8 uppercase tracking-widest">Wipe All Data</button>
+            <button onclick="resetData()" class="w-full text-[10px] text-red-300 py-8 uppercase tracking-widest font-bold">Destroy All Local Data</button>
         </div>
     </div>
 
@@ -100,34 +109,72 @@
         let currentCat = 'Misc';
         let currentType = 'out';
         let chartInstance = null;
-        let trendInstance = null;
+        let lastKnownPrice = 0;
 
         const CONFIG = {
             categories: ['Housing', 'Transport', 'Food', 'Ent', 'Savings', 'Misc'],
-            base: { savings: 0, pension: 0, debt: 0 }
+            base: { savings: 0, pension: 0, debt: 0 },
+            vhvgUnits: 0 // Shares owned
         };
 
-        // Fetch Live Price for VHVG (using a mock/public proxy example)
+        // --- DATA PRIVACY & BACKUP FUNCTIONS ---
+        
+        async function exportJSON() {
+            const data = await localforage.getItem('finance_v2') || [];
+            const backup = {
+                timestamp: new Date().toISOString(),
+                version: "2.0",
+                payload: data
+            };
+            const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `finance_vault_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+        }
+
+        async function importJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (imported.payload && Array.isArray(imported.payload)) {
+                        if (confirm("This will overwrite your current local data. Continue?")) {
+                            await localforage.setItem('finance_v2', imported.payload);
+                            alert("Vault Restored Successfully");
+                            load();
+                        }
+                    } else {
+                        throw new Error("Invalid Format");
+                    }
+                } catch (err) {
+                    alert("Error: Invalid backup file.");
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // --- EXISTING CORE LOGIC ---
+
         async function fetchVHVG() {
             try {
-                // In a production environment, use AlphaVantage or Yahoo Finance API key
-                // For this preview, we simulate the fetch logic
-                const response = await fetch('https://query1.finance.yahoo.com/v8/finance/chart/VHVG.L');
+                const response = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/VHVG.L`);
                 const data = await response.json();
-                const price = data.chart.result[0].meta.regularMarketPrice;
-                const prevClose = data.chart.result[0].meta.previousClose;
-                const change = ((price - prevClose) / prevClose * 100).toFixed(2);
-                
-                document.getElementById('vhvg-price').innerText = `£${price.toFixed(2)}`;
+                const quote = data.chart.result[0].meta;
+                lastKnownPrice = quote.regularMarketPrice;
+                document.getElementById('vhvg-price').innerText = `£${lastKnownPrice.toFixed(2)}`;
+                document.getElementById('last-updated').innerText = `Last Known: ${new Date().toLocaleTimeString()}`;
+                const change = ((lastKnownPrice - quote.previousClose) / quote.previousClose * 100).toFixed(2);
                 const changeEl = document.getElementById('vhvg-change');
                 changeEl.innerText = `${change > 0 ? '+' : ''}${change}%`;
-                changeEl.className = change >= 0 ? 'text-xs font-bold text-green-600' : 'text-xs font-bold text-red-400';
-
-                // Load Trend Chart Data
-                const history = data.chart.result[0].indicators.quote[0].close;
-                renderTrendChart(history.filter(p => p != null).slice(-30));
+                changeEl.className = change >= 0 ? 'text-sm font-bold text-green-600' : 'text-sm font-bold text-red-400';
+                load();
             } catch (e) {
-                document.getElementById('vhvg-price').innerText = "Market Closed";
+                document.getElementById('last-updated').innerText = "Syncing...";
             }
         }
 
@@ -145,7 +192,6 @@
             const btnIn = document.getElementById('tgl-in');
             const btnOut = document.getElementById('tgl-out');
             const addBtn = document.getElementById('add-btn');
-
             if(type === 'in') {
                 btnIn.className = "flex-1 py-2 rounded-lg text-xs font-bold transition bg-white shadow-sm text-green-600";
                 btnOut.className = "flex-1 py-2 rounded-lg text-xs font-bold transition text-stone-400";
@@ -176,14 +222,16 @@
                 else { totalOut += val; catSummary[e.cat] = (catSummary[e.cat] || 0) + val; }
             });
 
-            const netVal = CONFIG.base.savings + CONFIG.base.pension + CONFIG.base.debt + totalIn - totalOut;
+            const investmentValue = lastKnownPrice * CONFIG.vhvgUnits;
+            const netVal = CONFIG.base.savings + CONFIG.base.pension + CONFIG.base.debt + investmentValue + totalIn - totalOut;
+            
             document.getElementById('net-worth').innerText = `£${netVal.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
             document.getElementById('stat-in').innerText = `IN: £${totalIn.toLocaleString()}`;
             document.getElementById('stat-out').innerText = `OUT: £${totalOut.toLocaleString()}`;
 
             document.getElementById('account-grid').innerHTML = `
                 <div class="card p-3"><p class="text-[9px] uppercase text-stone-400">Savings</p><p class="text-sm font-bold">£${CONFIG.base.savings.toLocaleString()}</p></div>
-                <div class="card p-3"><p class="text-[9px] uppercase text-stone-400">Pension</p><p class="text-sm font-bold">£${CONFIG.base.pension.toLocaleString()}</p></div>
+                <div class="card p-3"><p class="text-[9px] uppercase text-stone-400">VHVG Value</p><p class="text-sm font-bold">£${investmentValue.toLocaleString(undefined, {maximumFractionDigits:0})}</p></div>
                 <div class="card p-3"><p class="text-[9px] uppercase text-stone-400">Debt</p><p class="text-sm font-bold text-red-400">£${CONFIG.base.debt.toLocaleString()}</p></div>
                 <div class="card p-3 bg-stone-50"><p class="text-[9px] uppercase text-stone-400">Cash Flow</p><p class="text-sm font-bold ${totalIn-totalOut >= 0 ? 'text-green-600' : 'text-red-400'}">£${(totalIn-totalOut).toFixed(0)}</p></div>
             `;
@@ -199,32 +247,8 @@
             updateChart(catSummary);
         }
 
-        function renderTrendChart(prices) {
-            const ctx = document.getElementById('trendChart').getContext('2d');
-            if (trendInstance) trendInstance.destroy();
-            trendInstance = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: prices.map((_, i) => i),
-                    datasets: [{
-                        label: 'VHVG',
-                        data: prices,
-                        borderColor: '#7DA67D',
-                        borderWidth: 2,
-                        fill: true,
-                        backgroundColor: 'rgba(125, 166, 125, 0.1)',
-                        pointRadius: 0
-                    }]
-                },
-                options: {
-                    plugins: { legend: { display: false } },
-                    scales: { x: { display: false }, y: { display: true, position: 'right', ticks: { font: { size: 8 } } } }
-                }
-            });
-        }
-
         function renderCategoryTable(summary) {
-            let html = `<table><thead><tr><th>Category</th><th>Total Cost</th></tr></thead><tbody>`;
+            let html = `<table><thead><tr><th>Category</th><th>Total</th></tr></thead><tbody>`;
             for (const cat in summary) {
                 html += `<tr><td class="font-semibold text-stone-600">${cat}</td><td class="text-right font-bold text-stone-800">£${summary[cat].toLocaleString(undefined, {minimumFractionDigits: 2})}</td></tr>`;
             }
@@ -264,13 +288,13 @@
             load();
         }
 
-        async function resetData() { if(confirm("Wipe all data?")) { await localforage.clear(); load(); } }
+        async function resetData() { if(confirm("Wipe all data? This cannot be undone.")) { await localforage.clear(); load(); } }
 
         document.addEventListener('DOMContentLoaded', () => {
             renderTabs();
             load();
             fetchVHVG();
-            setInterval(fetchVHVG, 60000); // Update every minute
+            setInterval(fetchVHVG, 300000);
         });
     </script>
 </body>
