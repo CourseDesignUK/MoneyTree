@@ -9,7 +9,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { background-color: #F9F7F2; -webkit-tap-highlight-color: transparent; overflow: hidden; }
-        .card { background-color: #FFFFFF; border-radius: 20px; border: 1px solid #E5E2D9; }
+        .card { background-color: #FFFFFF; border-radius: 20px; border: 1px solid #E5E2D9; transition: all 0.2s ease; }
         .btn-primary { background-color: #7DA67D; color: white; border-radius: 14px; }
         .accent-text { color: #5B7A5B; }
         .tab { padding: 8px 12px; border-radius: 10px; font-size: 0.75rem; font-weight: 600; cursor: pointer; background: #F0EEE6; color: #8A877F; white-space: nowrap; }
@@ -17,7 +17,6 @@
         .cat-badge { font-size: 9px; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; font-weight: bold; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         
-        /* Snap Scrolling Container */
         #snap-container { 
             display: flex; 
             overflow-x: auto; 
@@ -32,17 +31,18 @@
             scroll-snap-align: start; 
             overflow-y: auto; 
             padding: 16px; 
-            padding-bottom: 80px; /* Space for dots */
+            padding-bottom: 80px; 
         }
         
-        /* Pagination Dots */
-        #dots { position: fixed; bottom: 20px; left: 0; right: 0; display: flex; justify-center; gap: 8px; pointer-events: none; }
+        #dots { position: fixed; bottom: 20px; left: 0; right: 0; display: flex; justify-content: center; gap: 8px; pointer-events: none; }
         .dot { width: 6px; height: 6px; border-radius: 50%; background: #E5E2D9; transition: all 0.3s; }
         .dot.active { background: #7DA67D; width: 18px; border-radius: 3px; }
 
         table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
         th { text-align: left; color: #8A877F; text-transform: uppercase; font-size: 10px; letter-spacing: 0.1em; padding: 12px 8px; border-bottom: 1px solid #E5E2D9; }
         td { padding: 12px 8px; border-bottom: 1px dashed #F0EEE6; }
+
+        .editing-highlight { border: 2px solid #7DA67D !important; background-color: #f0fdf4; }
     </style>
 </head>
 <body>
@@ -74,12 +74,16 @@
             <div class="card p-4 mb-6 shadow-sm">
                 <p class="text-[10px] uppercase tracking-wider text-stone-400 font-bold mb-4 text-center">Monthly Distribution</p>
                 <canvas id="spendChart" style="max-height: 180px;"></canvas>
-                <p class="text-[9px] text-center text-stone-300 mt-4 uppercase tracking-widest animate-pulse">Swipe for Analytics ⮕</p>
             </div>
 
-            <div class="card p-5 mb-6 shadow-sm">
-                <p class="text-[10px] uppercase text-stone-400 font-bold mb-3">Add Monthly Transaction</p>
+            <div id="input-card" class="card p-5 mb-6 shadow-sm">
+                <div class="flex justify-between items-center mb-3">
+                    <p id="form-title" class="text-[10px] uppercase text-stone-400 font-bold">Add Transaction</p>
+                    <button id="cancel-edit" onclick="resetForm()" class="hidden text-[10px] uppercase font-bold text-red-400">Cancel Edit</button>
+                </div>
+                
                 <div class="flex gap-2 overflow-x-auto pb-3 mb-3 no-scrollbar" id="cat-selector"></div>
+                
                 <div class="space-y-3">
                     <div class="flex bg-stone-100 p-1 rounded-xl">
                         <button onclick="setType('out')" id="tgl-out" class="flex-1 py-2 rounded-lg text-xs font-bold transition bg-white shadow-sm text-red-500">EXPENSE</button>
@@ -130,6 +134,7 @@
         let currentType = 'out';
         let chartInstance = null;
         let lastKnownPrice = 0;
+        let editIndex = null; // Stores index of entry being amended
 
         const CONFIG = {
             monthlyCategories: ['Housing', 'Food', 'Transport', 'Ent', 'Bills', 'Misc'],
@@ -147,6 +152,7 @@
 
         async function fetchVHVG() {
             try {
+                // Note: Yahoo Finance CORS may require a proxy in production, but often works for local testing
                 const res = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/VHVG.L`);
                 const data = await res.json();
                 const quote = data.chart.result[0].meta;
@@ -165,13 +171,15 @@
                 `<div class="tab ${currentCat === c ? 'active' : ''}" onclick="setCat('${c}')">${c}</div>`
             ).join('');
         }
+
         function setCat(c) { currentCat = c; renderTabs(); }
         
         function setType(t) {
             currentType = t;
-            document.getElementById('tgl-in').className = t==='in' ? "flex-1 py-2 rounded-lg text-xs font-bold transition bg-white shadow-sm text-green-600" : "flex-1 py-2 rounded-lg text-xs font-bold transition text-stone-400";
-            document.getElementById('tgl-out').className = t==='out' ? "flex-1 py-2 rounded-lg text-xs font-bold transition bg-white shadow-sm text-red-500" : "flex-1 py-2 rounded-lg text-xs font-bold transition text-stone-400";
-            document.getElementById('add-btn').style.backgroundColor = t==='in' ? "#7DA67D" : "#A67D7D";
+            const isInc = t === 'in';
+            document.getElementById('tgl-in').className = isInc ? "flex-1 py-2 rounded-lg text-xs font-bold transition bg-white shadow-sm text-green-600" : "flex-1 py-2 rounded-lg text-xs font-bold transition text-stone-400";
+            document.getElementById('tgl-out').className = !isInc ? "flex-1 py-2 rounded-lg text-xs font-bold transition bg-white shadow-sm text-red-500" : "flex-1 py-2 rounded-lg text-xs font-bold transition text-stone-400";
+            document.getElementById('add-btn').style.backgroundColor = isInc ? "#7DA67D" : "#A67D7D";
         }
 
         async function load() {
@@ -199,12 +207,24 @@
                 <div class="card p-2"><p class="text-[8px] uppercase text-stone-400">Debt</p><p class="text-xs font-bold text-red-400">£${CONFIG.wealth.debt.toLocaleString()}</p></div>
             `;
 
-            document.getElementById('list').innerHTML = data.slice().reverse().map((e, idx) => `
-                <li class="flex justify-between items-center p-4 card shadow-sm">
-                    <div><p class="text-sm font-semibold text-stone-700">${e.desc}</p><span class="cat-badge bg-stone-100 text-stone-500">${e.cat}</span></div>
-                    <div class="text-right"><p class="font-bold ${e.type==='in'?'text-green-600':'text-stone-700'}">${e.type==='in'?'+':'-'}£${parseFloat(e.amt).toFixed(2)}</p><button onclick="deleteEntry(${data.length-1-idx})" class="text-[10px] text-stone-300">Delete</button></div>
+            document.getElementById('list').innerHTML = data.slice().reverse().map((e, idx) => {
+                const originalIdx = data.length - 1 - idx;
+                const isEditing = editIndex === originalIdx;
+                return `
+                <li class="flex justify-between items-center p-4 card shadow-sm ${isEditing ? 'editing-highlight' : ''}">
+                    <div>
+                        <p class="text-sm font-semibold text-stone-700">${e.desc}</p>
+                        <span class="cat-badge bg-stone-100 text-stone-500">${e.cat}</span>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-bold ${e.type==='in'?'text-green-600':'text-stone-700'}">${e.type==='in'?'+':'-'}£${parseFloat(e.amt).toFixed(2)}</p>
+                        <div class="flex gap-2 justify-end">
+                            <button onclick="startEdit(${originalIdx})" class="text-[10px] text-stone-400 uppercase font-bold">Edit</button>
+                            <button onclick="deleteEntry(${originalIdx})" class="text-[10px] text-red-200 uppercase font-bold">Delete</button>
+                        </div>
+                    </div>
                 </li>
-            `).join('');
+            `}).join('');
 
             renderTable(catSum);
             updateChart(catSum);
@@ -229,18 +249,68 @@
         }
 
         async function addEntry() {
-            const d = document.getElementById('desc').value; const a = document.getElementById('amt').value;
+            const d = document.getElementById('desc').value; 
+            const a = document.getElementById('amt').value;
             if(!d || !a) return;
+            
             const data = await localforage.getItem('finance_v2') || [];
-            data.push({ desc: d, amt: Math.abs(parseFloat(a)), cat: currentCat, type: currentType, date: new Date().toISOString() });
+            const entry = { 
+                desc: d, 
+                amt: Math.abs(parseFloat(a)), 
+                cat: currentCat, 
+                type: currentType, 
+                date: editIndex !== null ? data[editIndex].date : new Date().toISOString() 
+            };
+
+            if (editIndex !== null) {
+                data[editIndex] = entry;
+            } else {
+                data.push(entry);
+            }
+
             await localforage.setItem('finance_v2', data);
-            document.getElementById('desc').value = ''; document.getElementById('amt').value = '';
+            resetForm();
+            load();
+        }
+
+        async function startEdit(i) {
+            const data = await localforage.getItem('finance_v2');
+            const item = data[i];
+            editIndex = i;
+            
+            // Populate Form
+            document.getElementById('desc').value = item.desc;
+            document.getElementById('amt').value = item.amt;
+            setCat(item.cat);
+            setType(item.type);
+            
+            // UI Feedback
+            document.getElementById('add-btn').innerText = "Update";
+            document.getElementById('form-title').innerText = "Update Entry";
+            document.getElementById('cancel-edit').classList.remove('hidden');
+            
+            // Scroll to form
+            document.getElementById('page-dashboard').scrollTo({ top: 0, behavior: 'smooth' });
+            load(); // reload list to show highlight
+        }
+
+        function resetForm() {
+            editIndex = null;
+            document.getElementById('desc').value = ''; 
+            document.getElementById('amt').value = '';
+            document.getElementById('add-btn').innerText = "Add";
+            document.getElementById('form-title').innerText = "Add Transaction";
+            document.getElementById('cancel-edit').classList.add('hidden');
             load();
         }
 
         async function deleteEntry(i) {
+            if(!confirm("Delete this entry?")) return;
             const d = await localforage.getItem('finance_v2');
-            d.splice(i, 1); await localforage.setItem('finance_v2', d); load();
+            d.splice(i, 1); 
+            await localforage.setItem('finance_v2', d); 
+            if (editIndex === i) resetForm();
+            load();
         }
 
         async function exportJSON() {
