@@ -43,7 +43,7 @@
         td { padding: 12px 8px; border-bottom: 1px dashed #F0EEE6; }
 
         .editing-highlight { border: 2px solid #7DA67D !important; background-color: #f0fdf4; }
-        input[type="number"]::-webkit-inner-spin-button { display: none; }
+        input { outline: none; }
     </style>
 </head>
 <body>
@@ -59,8 +59,7 @@
                 </div>
             </header>
 
-            <div id="wealth-grid" class="grid grid-cols-3 gap-2 mb-6 text-center">
-                </div>
+            <div id="wealth-grid" class="grid grid-cols-3 gap-2 mb-6 text-center"></div>
 
             <div class="card p-4 mb-6 shadow-sm">
                 <p class="text-[10px] uppercase tracking-wider text-stone-400 font-bold mb-4 text-center">Spending Distribution</p>
@@ -72,44 +71,43 @@
                     <p id="form-title" class="text-[10px] uppercase text-stone-400 font-bold">Add Transaction</p>
                     <button id="cancel-edit" onclick="resetForm()" class="hidden text-[10px] uppercase font-bold text-red-400">Cancel</button>
                 </div>
-                
                 <div class="flex gap-2 overflow-x-auto pb-3 mb-3 no-scrollbar" id="cat-selector"></div>
-                
                 <div class="space-y-3">
                     <div class="flex bg-stone-100 p-1 rounded-xl">
                         <button onclick="setType('out')" id="tgl-out" class="flex-1 py-2 rounded-lg text-xs font-bold transition bg-white shadow-sm text-red-500">EXPENSE</button>
                         <button onclick="setType('in')" id="tgl-in" class="flex-1 py-2 rounded-lg text-xs font-bold transition text-stone-400">INCOME</button>
                     </div>
-                    <input id="desc" type="text" placeholder="Description" class="w-full bg-stone-50 p-3 rounded-xl outline-none border border-stone-100">
+                    <input id="desc" type="text" placeholder="Description" class="w-full bg-stone-50 p-3 rounded-xl border border-stone-100">
                     <div class="flex gap-2">
-                        <input id="amt" type="number" inputmode="decimal" placeholder="0.00" class="w-full bg-stone-50 p-3 rounded-xl outline-none border border-stone-100 text-lg">
+                        <input id="amt" type="number" inputmode="decimal" placeholder="0.00" class="w-full bg-stone-50 p-3 rounded-xl border border-stone-100 text-lg">
                         <button onclick="addEntry()" id="add-btn" class="btn-primary px-6 font-bold shadow-md active:scale-95 transition">Add</button>
                     </div>
                 </div>
             </div>
-
             <ul id="list" class="space-y-2 pb-10"></ul>
         </div>
 
         <div class="page" id="page-table">
             <header class="mb-6 pt-4 text-center">
-                <h2 class="text-sm font-bold text-stone-500 uppercase tracking-widest">Vault & Portfolio</h2>
+                <h2 class="text-sm font-bold text-stone-500 uppercase tracking-widest">Accounts & Assets</h2>
             </header>
 
             <div class="card p-5 mb-6 shadow-sm">
-                <p class="text-[10px] font-bold text-stone-400 uppercase mb-4">Update Portfolio</p>
-                <div class="space-y-3">
-                    <div class="flex items-center gap-3">
-                        <span class="text-[10px] font-bold text-stone-500 w-20 uppercase">Savings</span>
-                        <input id="set-savings" type="number" onchange="updateWealthConfig()" placeholder="£0" class="flex-1 bg-stone-50 p-2 rounded-lg border border-stone-100 outline-none text-sm">
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <span class="text-[10px] font-bold text-stone-500 w-20 uppercase">Investments</span>
-                        <input id="set-invest" type="number" onchange="updateWealthConfig()" placeholder="£0" class="flex-1 bg-stone-50 p-2 rounded-lg border border-stone-100 outline-none text-sm">
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <span class="text-[10px] font-bold text-stone-500 w-20 uppercase">Debt</span>
-                        <input id="set-debt" type="number" onchange="updateWealthConfig()" placeholder="£0" class="flex-1 bg-stone-50 p-2 rounded-lg border border-stone-100 outline-none text-sm">
+                <p class="text-[10px] font-bold text-stone-400 uppercase mb-4">Manage Accounts</p>
+                <div id="account-list" class="space-y-3 mb-4"></div>
+                
+                <div class="pt-4 border-t border-dashed border-stone-200">
+                    <p class="text-[9px] font-bold text-stone-400 uppercase mb-2">Add New Account</p>
+                    <div class="flex flex-col gap-2">
+                        <input id="new-acc-name" type="text" placeholder="Account Name (e.g. ISA)" class="bg-stone-50 p-2 rounded-lg border border-stone-100 text-xs">
+                        <div class="flex gap-2">
+                            <select id="new-acc-type" class="bg-stone-100 p-2 rounded-lg text-[10px] font-bold uppercase outline-none">
+                                <option value="savings">Savings</option>
+                                <option value="investments">Investment</option>
+                                <option value="debt">Debt</option>
+                            </select>
+                            <button onclick="addAccount()" class="btn-primary flex-1 py-2 text-[10px] font-bold uppercase">Create Account</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -121,20 +119,16 @@
             </div>
 
             <div class="card p-5 mb-6 shadow-sm flex gap-3">
-                <button onclick="exportJSON()" class="flex-1 text-[10px] font-bold bg-stone-100 text-stone-600 p-3 rounded-xl uppercase">Export JSON</button>
+                <button onclick="exportJSON()" class="flex-1 text-[10px] font-bold bg-stone-100 text-stone-600 p-3 rounded-xl uppercase">Export</button>
                 <label class="flex-1 text-[10px] font-bold bg-stone-100 text-stone-600 p-3 rounded-xl uppercase text-center cursor-pointer">
-                    Import JSON <input type="file" id="import-file" class="hidden" onchange="importJSON(event)">
+                    Import <input type="file" id="import-file" class="hidden" onchange="importJSON(event)">
                 </label>
             </div>
-            
             <button onclick="resetData()" class="w-full text-[10px] text-red-300 py-8 uppercase tracking-widest font-bold">Wipe All Data</button>
         </div>
     </div>
 
-    <div id="dots">
-        <div class="dot active"></div>
-        <div class="dot"></div>
-    </div>
+    <div id="dots"><div class="dot active"></div><div class="dot"></div></div>
 
     <script>
         let currentCat = 'Misc';
@@ -142,92 +136,101 @@
         let currentType = 'out';
         let chartInstance = null;
         let editIndex = null;
+        let ACCOUNTS = [];
 
-        let WEALTH = { savings: 0, investments: 0, debt: 0 };
-        const CONFIG = {
-            monthlyCategories: ['Housing', 'Food', 'Transport', 'Ent', 'Bills', 'Misc']
-        };
+        const CONFIG = { monthlyCategories: ['Housing', 'Food', 'Transport', 'Ent', 'Bills', 'Misc'] };
 
         function updateDots() {
-            const container = document.getElementById('snap-container');
-            const index = Math.round(container.scrollLeft / window.innerWidth);
-            document.querySelectorAll('.dot').forEach((dot, i) => {
-                dot.classList.toggle('active', i === index);
-            });
+            const index = Math.round(document.getElementById('snap-container').scrollLeft / window.innerWidth);
+            document.querySelectorAll('.dot').forEach((dot, i) => dot.classList.toggle('active', i === index));
         }
 
-        async function updateWealthConfig() {
-            WEALTH.savings = parseFloat(document.getElementById('set-savings').value) || 0;
-            WEALTH.investments = parseFloat(document.getElementById('set-invest').value) || 0;
-            WEALTH.debt = parseFloat(document.getElementById('set-debt').value) || 0;
-            await localforage.setItem('wealth_config', WEALTH);
+        async function addAccount() {
+            const name = document.getElementById('new-acc-name').value;
+            const type = document.getElementById('new-acc-type').value;
+            if(!name) return;
+            ACCOUNTS.push({ id: Date.now(), name, type, balance: 0 });
+            await localforage.setItem('accounts_v2', ACCOUNTS);
+            document.getElementById('new-acc-name').value = '';
+            load();
+        }
+
+        async function updateBalance(id, val) {
+            const idx = ACCOUNTS.findIndex(a => a.id === id);
+            ACCOUNTS[idx].balance = parseFloat(val) || 0;
+            await localforage.setItem('accounts_v2', ACCOUNTS);
+            load();
+        }
+
+        async function deleteAccount(id) {
+            if(!confirm("Delete this account?")) return;
+            ACCOUNTS = ACCOUNTS.filter(a => a.id !== id);
+            await localforage.setItem('accounts_v2', ACCOUNTS);
             load();
         }
 
         function renderTabs() {
             document.getElementById('cat-selector').innerHTML = CONFIG.monthlyCategories.map(c => 
-                `<div class="tab ${currentCat === c ? 'active' : ''}" onclick="setCat('${c}')">${c}</div>`
-            ).join('');
-
+                `<div class="tab ${currentCat === c ? 'active' : ''}" onclick="setCat('${c}')">${c}</div>`).join('');
             const tableCats = ['All', ...CONFIG.monthlyCategories];
             document.getElementById('table-cat-selector').innerHTML = tableCats.map(c => 
-                `<div class="tab ${tableFilterCat === c ? 'active' : ''}" onclick="setTableFilter('${c}')">${c}</div>`
-            ).join('');
+                `<div class="tab ${tableFilterCat === c ? 'active' : ''}" onclick="setTableFilter('${c}')">${c}</div>`).join('');
         }
 
         function setCat(c) { currentCat = c; renderTabs(); }
         function setTableFilter(c) { tableFilterCat = c; renderTabs(); load(); }
-
         function setType(t) {
             currentType = t;
-            document.getElementById('tgl-in').className = t === 'in' ? "flex-1 py-2 rounded-lg text-xs font-bold transition bg-white shadow-sm text-green-600" : "flex-1 py-2 rounded-lg text-xs font-bold transition text-stone-400";
-            document.getElementById('tgl-out').className = t === 'out' ? "flex-1 py-2 rounded-lg text-xs font-bold transition bg-white shadow-sm text-red-500" : "flex-1 py-2 rounded-lg text-xs font-bold transition text-stone-400";
+            document.getElementById('tgl-in').className = t === 'in' ? "flex-1 py-2 rounded-lg text-xs font-bold bg-white shadow-sm text-green-600" : "flex-1 py-2 rounded-lg text-xs font-bold text-stone-400";
+            document.getElementById('tgl-out').className = t === 'out' ? "flex-1 py-2 rounded-lg text-xs font-bold bg-white shadow-sm text-red-500" : "flex-1 py-2 rounded-lg text-xs font-bold text-stone-400";
             document.getElementById('add-btn').style.backgroundColor = t === 'in' ? "#7DA67D" : "#A67D7D";
         }
 
         async function load() {
             const data = await localforage.getItem('finance_v2') || [];
-            const savedWealth = await localforage.getItem('wealth_config');
-            if(savedWealth) {
-                WEALTH = savedWealth;
-                document.getElementById('set-savings').value = WEALTH.savings;
-                document.getElementById('set-invest').value = WEALTH.investments;
-                document.getElementById('set-debt').value = WEALTH.debt;
-            }
-
-            let mIn = 0; let mOut = 0;
+            ACCOUNTS = await localforage.getItem('accounts_v2') || [];
+            
+            // Aggregates
+            let mIn = 0, mOut = 0;
             const catSum = {};
             CONFIG.monthlyCategories.forEach(c => catSum[c] = 0);
-
             data.forEach(e => {
                 const v = parseFloat(e.amt);
-                if(e.type === 'in') mIn += v;
-                else { mOut += v; catSum[e.cat] = (catSum[e.cat] || 0) + v; }
+                if(e.type === 'in') mIn += v; else { mOut += v; catSum[e.cat] += v; }
             });
 
-            const netWorth = (WEALTH.savings + WEALTH.investments + mIn) - (WEALTH.debt + mOut);
+            const totals = ACCOUNTS.reduce((acc, curr) => {
+                acc[curr.type] += curr.balance; return acc;
+            }, { savings: 0, investments: 0, debt: 0 });
+
+            const netWorth = (totals.savings + totals.investments + mIn) - (totals.debt + mOut);
 
             document.getElementById('net-worth').innerText = `£${netWorth.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
             document.getElementById('stat-in').innerText = `IN: £${mIn.toLocaleString()}`;
             document.getElementById('stat-out').innerText = `OUT: £${mOut.toLocaleString()}`;
 
             document.getElementById('wealth-grid').innerHTML = `
-                <div class="card p-2 border-green-100 bg-green-50/30"><p class="text-[8px] uppercase text-stone-400">Savings</p><p class="text-xs font-bold">£${WEALTH.savings.toLocaleString()}</p></div>
-                <div class="card p-2 border-blue-100 bg-blue-50/30"><p class="text-[8px] uppercase text-stone-400">Invested</p><p class="text-xs font-bold">£${WEALTH.investments.toLocaleString()}</p></div>
-                <div class="card p-2 border-red-100 bg-red-50/30"><p class="text-[8px] uppercase text-stone-400">Debt</p><p class="text-xs font-bold text-red-400">£${WEALTH.debt.toLocaleString()}</p></div>
-            `;
+                <div class="card p-2 border-green-100 bg-green-50/30"><p class="text-[8px] uppercase text-stone-400">Savings</p><p class="text-xs font-bold">£${totals.savings.toLocaleString()}</p></div>
+                <div class="card p-2 border-blue-100 bg-blue-50/30"><p class="text-[8px] uppercase text-stone-400">Invested</p><p class="text-xs font-bold">£${totals.investments.toLocaleString()}</p></div>
+                <div class="card p-2 border-red-100 bg-red-50/30"><p class="text-[8px] uppercase text-stone-400">Debt</p><p class="text-xs font-bold text-red-400">£${totals.debt.toLocaleString()}</p></div>`;
+
+            // Render Account Inputs in Vault
+            document.getElementById('account-list').innerHTML = ACCOUNTS.map(a => `
+                <div class="flex items-center gap-2">
+                    <div class="flex-1">
+                        <p class="text-[9px] font-bold text-stone-400 uppercase">${a.name} <span class="opacity-50">(${a.type})</span></p>
+                        <input type="number" value="${a.balance}" onchange="updateBalance(${a.id}, this.value)" class="w-full bg-stone-50 p-2 rounded-lg border border-stone-100 text-sm">
+                    </div>
+                    <button onclick="deleteAccount(${a.id})" class="mt-4 text-stone-300 text-xs">✕</button>
+                </div>`).join('');
 
             document.getElementById('list').innerHTML = data.slice().reverse().map((e, idx) => {
-                const originalIdx = data.length - 1 - idx;
-                return `
-                <li class="flex justify-between items-center p-4 card shadow-sm ${editIndex === originalIdx ? 'editing-highlight' : ''}">
+                const oIdx = data.length - 1 - idx;
+                return `<li class="flex justify-between items-center p-4 card shadow-sm ${editIndex === oIdx ? 'editing-highlight' : ''}">
                     <div><p class="text-sm font-semibold text-stone-700">${e.desc}</p><span class="cat-badge bg-stone-100 text-stone-500">${e.cat}</span></div>
-                    <div class="text-right">
-                        <p class="font-bold ${e.type==='in'?'text-green-600':'text-stone-700'}">${e.type==='in'?'+':'-'}£${parseFloat(e.amt).toFixed(2)}</p>
-                        <div class="flex gap-2 justify-end mt-1"><button onclick="startEdit(${originalIdx})" class="text-[9px] text-stone-400 uppercase font-bold">Edit</button><button onclick="deleteEntry(${originalIdx})" class="text-[9px] text-red-200 uppercase font-bold">Del</button></div>
-                    </div>
-                </li>`
-            }).join('');
+                    <div class="text-right"><p class="font-bold ${e.type==='in'?'text-green-600':'text-stone-700'}">${e.type==='in'?'+':'-'}£${parseFloat(e.amt).toFixed(2)}</p>
+                    <div class="flex gap-2 justify-end mt-1"><button onclick="startEdit(${oIdx})" class="text-[9px] text-stone-400 uppercase font-bold">Edit</button><button onclick="deleteEntry(${oIdx})" class="text-[9px] text-red-200 uppercase font-bold">Del</button></div></div>
+                </li>`}).join('');
 
             renderTabbedTable(data);
             updateChart(catSum);
@@ -237,56 +240,43 @@
             const filtered = tableFilterCat === 'All' ? data : data.filter(i => i.cat === tableFilterCat);
             let h = `<table><thead><tr><th>Description</th><th class="text-right">Amount</th></tr></thead><tbody>`;
             if (filtered.length === 0) h += `<tr><td colspan="2" class="text-center py-8 text-stone-300 italic">No entries</td></tr>`;
-            else {
-                filtered.slice().reverse().forEach(e => {
-                    h += `<tr><td class="font-medium text-stone-600">${e.desc}<br><span class="text-[8px] text-stone-400 uppercase">${new Date(e.date).toLocaleDateString()}</span></td>
-                    <td class="text-right font-bold ${e.type === 'in' ? 'text-green-600' : 'text-stone-800'}">${e.type === 'in' ? '+' : '-'}£${parseFloat(e.amt).toLocaleString()}</td></tr>`;
-                });
-            }
+            else filtered.slice().reverse().forEach(e => {
+                h += `<tr><td class="font-medium text-stone-600">${e.desc}<br><span class="text-[8px] text-stone-400 uppercase">${new Date(e.date).toLocaleDateString()}</span></td>
+                <td class="text-right font-bold ${e.type === 'in' ? 'text-green-600' : 'text-stone-800'}">${e.type === 'in' ? '+' : '-'}£${parseFloat(e.amt).toLocaleString()}</td></tr>`;
+            });
             document.getElementById('table-container').innerHTML = h + `</tbody></table>`;
         }
 
         function updateChart(sums) {
             const ctx = document.getElementById('spendChart').getContext('2d');
-            const labels = Object.keys(sums).filter(k => sums[k] > 0);
-            const values = labels.map(k => sums[k]);
+            const labels = Object.keys(sums).filter(k => sums[k] > 0), values = labels.map(k => sums[k]);
             if (chartInstance) chartInstance.destroy();
-            chartInstance = new Chart(ctx, {
-                type: 'doughnut',
-                data: { labels, datasets: [{ data: values, backgroundColor: ['#7DA67D', '#9DBE9D', '#C2D6C2', '#E5E2D9', '#8A877F', '#A67D7D'], borderWidth: 0 }] },
-                options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } }, cutout: '75%' }
-            });
+            chartInstance = new Chart(ctx, { type: 'doughnut', data: { labels, datasets: [{ data: values, backgroundColor: ['#7DA67D', '#9DBE9D', '#C2D6C2', '#E5E2D9', '#8A877F', '#A67D7D'], borderWidth: 0 }] }, options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } }, cutout: '75%' } });
         }
 
         async function addEntry() {
-            const d = document.getElementById('desc').value; const a = document.getElementById('amt').value;
+            const d = document.getElementById('desc').value, a = document.getElementById('amt').value;
             if(!d || !a) return;
             const data = await localforage.getItem('finance_v2') || [];
             const entry = { desc: d, amt: Math.abs(parseFloat(a)), cat: currentCat, type: currentType, date: editIndex !== null ? data[editIndex].date : new Date().toISOString() };
-            if (editIndex !== null) data[editIndex] = entry;
-            else data.push(entry);
+            if (editIndex !== null) data[editIndex] = entry; else data.push(entry);
             await localforage.setItem('finance_v2', data);
             resetForm(); load();
         }
 
         async function startEdit(i) {
             const data = await localforage.getItem('finance_v2');
-            const item = data[i];
-            editIndex = i;
-            document.getElementById('desc').value = item.desc;
-            document.getElementById('amt').value = item.amt;
+            const item = data[i]; editIndex = i;
+            document.getElementById('desc').value = item.desc; document.getElementById('amt').value = item.amt;
             setCat(item.cat); setType(item.type);
-            document.getElementById('add-btn').innerText = "Update";
-            document.getElementById('cancel-edit').classList.remove('hidden');
+            document.getElementById('add-btn').innerText = "Update"; document.getElementById('cancel-edit').classList.remove('hidden');
             document.getElementById('page-dashboard').scrollTo({ top: 0, behavior: 'smooth' });
             load();
         }
 
         function resetForm() {
-            editIndex = null;
-            document.getElementById('desc').value = ''; document.getElementById('amt').value = '';
-            document.getElementById('add-btn').innerText = "Add";
-            document.getElementById('cancel-edit').classList.add('hidden');
+            editIndex = null; document.getElementById('desc').value = ''; document.getElementById('amt').value = '';
+            document.getElementById('add-btn').innerText = "Add"; document.getElementById('cancel-edit').classList.add('hidden');
             load();
         }
 
@@ -297,18 +287,17 @@
         }
 
         async function exportJSON() {
-            const d = await localforage.getItem('finance_v2');
-            const w = await localforage.getItem('wealth_config');
-            const b = new Blob([JSON.stringify({payload: d, wealth: w})], {type:'application/json'});
-            const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download='finance_backup.json'; a.click();
+            const d = await localforage.getItem('finance_v2'), a = await localforage.getItem('accounts_v2');
+            const b = new Blob([JSON.stringify({payload: d, accounts: a})], {type:'application/json'});
+            const link = document.createElement('a'); link.href = URL.createObjectURL(b); link.download='finance_backup.json'; link.click();
         }
 
         async function importJSON(e) {
-            const f = e.target.files[0]; const r = new FileReader();
+            const f = e.target.files[0], r = new FileReader();
             r.onload = async (ev) => { 
                 const i = JSON.parse(ev.target.result); 
                 await localforage.setItem('finance_v2', i.payload); 
-                await localforage.setItem('wealth_config', i.wealth);
+                await localforage.setItem('accounts_v2', i.accounts);
                 load(); 
             };
             r.readAsText(f);
