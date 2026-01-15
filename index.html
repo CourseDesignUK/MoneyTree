@@ -17,25 +17,9 @@
         .tab.active { background: #7DA67D; color: white; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         
-        /* Snap Container */
-        #snap-container { 
-            display: flex; 
-            overflow-x: auto; 
-            scroll-snap-type: x mandatory; 
-            scroll-behavior: smooth; 
-            height: 100vh;
-            width: 100vw;
-        }
-        .page { 
-            min-width: 100vw; 
-            height: 100%; 
-            scroll-snap-align: start; 
-            overflow-y: auto; 
-            padding: 20px; 
-            padding-bottom: 100px; 
-        }
+        #snap-container { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; height: 100vh; width: 100vw; }
+        .page { min-width: 100vw; height: 100%; scroll-snap-align: start; overflow-y: auto; padding: 20px; padding-bottom: 120px; }
         
-        /* Navigation Dots */
         #nav-bar { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,0.8); backdrop-filter: blur(10px); padding: 10px 20px; border-radius: 20px; border: 1px solid #E5E2D9; box-shadow: 0 4px 12px rgba(0,0,0,0.05); z-index: 50; }
         .nav-btn { font-size: 10px; font-weight: 800; color: #8A877F; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; transition: color 0.3s; }
         .nav-btn.active { color: #7DA67D; }
@@ -69,6 +53,20 @@
             <div class="card p-5 mb-6 shadow-sm">
                 <p class="text-[10px] uppercase tracking-wider text-stone-400 font-bold mb-4 text-center">Monthly Distribution</p>
                 <canvas id="spendChart" style="max-height: 160px;"></canvas>
+                <div id="income-analysis" class="mt-4 pt-4 border-t border-stone-100 flex justify-between">
+                    <div class="text-center flex-1">
+                        <p class="text-[8px] uppercase font-bold text-stone-400">Active</p>
+                        <p id="val-active" class="text-xs font-bold text-stone-600">£0</p>
+                    </div>
+                    <div class="text-center flex-1 border-x border-stone-100">
+                        <p class="text-[8px] uppercase font-bold text-stone-400">Passive</p>
+                        <p id="val-passive" class="text-xs font-bold text-green-600">£0</p>
+                    </div>
+                    <div class="text-center flex-1">
+                        <p class="text-[8px] uppercase font-bold text-stone-400">Freedom %</p>
+                        <p id="val-freedom" class="text-xs font-bold accent-text">0%</p>
+                    </div>
+                </div>
             </div>
 
             <div id="input-card" class="card p-6 mb-6 shadow-sm border-stone-200">
@@ -76,12 +74,20 @@
                     <p id="form-title" class="text-[10px] uppercase text-stone-500 font-black">Quick Transaction</p>
                     <button id="cancel-edit" onclick="resetForm()" class="hidden text-[10px] font-bold text-red-400">CANCEL</button>
                 </div>
+                
                 <div class="flex gap-2 overflow-x-auto pb-4 mb-2 no-scrollbar" id="cat-selector"></div>
+
                 <div class="space-y-3">
                     <div class="flex bg-stone-100 p-1 rounded-xl">
                         <button onclick="setType('out')" id="tgl-out" class="flex-1 py-2 rounded-lg text-xs font-bold transition bg-white shadow-sm text-red-500">EXPENSE</button>
                         <button onclick="setType('in')" id="tgl-in" class="flex-1 py-2 rounded-lg text-xs font-bold transition text-stone-400">INCOME</button>
                     </div>
+
+                    <div id="income-type-container" class="hidden flex gap-2 bg-stone-50 p-1 rounded-xl">
+                        <button onclick="setIncomeSub('active')" id="sub-active" class="flex-1 py-1.5 rounded-lg text-[10px] font-black transition bg-white shadow-xs">ACTIVE</button>
+                        <button onclick="setIncomeSub('passive')" id="sub-passive" class="flex-1 py-1.5 rounded-lg text-[10px] font-black transition text-stone-400">PASSIVE</button>
+                    </div>
+
                     <input id="desc" type="text" placeholder="Description" class="w-full bg-stone-50 p-3 rounded-xl">
                     <div class="flex gap-2">
                         <input id="amt" type="number" inputmode="decimal" placeholder="0.00" class="w-full bg-stone-50 p-3 rounded-xl text-lg font-semibold">
@@ -95,24 +101,21 @@
         <div class="page" id="page-portfolio">
             <header class="mb-8 pt-4 text-center">
                 <h2 class="text-xs font-black text-stone-400 uppercase tracking-[0.2em]">Portfolio Manager</h2>
-                <p class="text-[10px] text-stone-400 mt-1">Manage all your liquid and debt accounts</p>
             </header>
-
             <div class="card p-6 mb-6 shadow-sm">
                 <p class="text-[10px] font-black text-stone-500 uppercase mb-5">Current Accounts</p>
                 <div id="account-list" class="space-y-4 mb-6"></div>
-                
                 <div class="pt-6 border-t border-dashed border-stone-200">
                     <p class="text-[9px] font-black text-stone-400 uppercase mb-3">Add New Account</p>
                     <div class="flex flex-col gap-3">
-                        <input id="new-acc-name" type="text" placeholder="Account Name (e.g. Savings ISA)" class="bg-stone-50 p-3 rounded-xl text-sm">
+                        <input id="new-acc-name" type="text" placeholder="Account Name" class="bg-stone-50 p-3 rounded-xl text-sm">
                         <div class="flex gap-2">
                             <select id="new-acc-type" class="bg-stone-100 p-3 rounded-xl text-[10px] font-bold uppercase cursor-pointer">
                                 <option value="savings">Savings</option>
                                 <option value="investments">Invested</option>
                                 <option value="debt">Debt</option>
                             </select>
-                            <button onclick="addAccount()" class="btn-primary flex-1 py-3 text-[10px] font-black uppercase">Create Account</button>
+                            <button onclick="addAccount()" class="btn-primary flex-1 py-3 text-[10px] font-black uppercase">Create</button>
                         </div>
                     </div>
                 </div>
@@ -123,20 +126,17 @@
             <header class="mb-6 pt-4 text-center">
                 <h2 class="text-xs font-black text-stone-400 uppercase tracking-[0.2em]">Data & History</h2>
             </header>
-
             <div class="card p-5 mb-6 shadow-sm">
                 <p class="text-[10px] font-black text-stone-500 uppercase mb-4">Detailed Breakdown</p>
                 <div class="flex gap-2 overflow-x-auto pb-4 mb-2 no-scrollbar" id="table-cat-selector"></div>
                 <div id="table-container" class="overflow-hidden"></div>
             </div>
-
             <div class="card p-5 mb-6 shadow-sm flex gap-3">
                 <button onclick="exportJSON()" class="flex-1 text-[10px] font-black bg-stone-100 text-stone-600 p-4 rounded-2xl uppercase">Export JSON</button>
                 <label class="flex-1 text-[10px] font-black bg-stone-100 text-stone-600 p-4 rounded-2xl uppercase text-center cursor-pointer">
                     Import JSON <input type="file" id="import-file" class="hidden" onchange="importJSON(event)">
                 </label>
             </div>
-            
             <button onclick="resetData()" class="w-full text-[10px] text-red-300 py-10 uppercase font-black tracking-widest">Wipe All Local Data</button>
         </div>
     </div>
@@ -153,31 +153,197 @@
         let currentCat = 'Misc';
         let tableFilterCat = 'All';
         let currentType = 'out';
+        let currentIncomeSub = 'active'; // Added: active or passive
         let chartInstance = null;
         let editIndex = null;
         let ACCOUNTS = [];
 
-        const CONFIG = { monthlyCategories: ['Housing', 'Food', 'Transport', 'Ent', 'Bills', 'Misc'] };
+        const CONFIG = { 
+            monthlyCategories: ['Housing', 'Food', 'Transport', 'Ent', 'Bills', 'Misc'],
+            incomeCategories: ['Salary', 'Dividends', 'Rent', 'Freelance', 'Other']
+        };
 
-        // --- NAVIGATION LOGIC ---
         function syncNav() {
             const container = document.getElementById('snap-container');
             const index = Math.round(container.scrollLeft / window.innerWidth);
             const btns = document.querySelectorAll('.nav-btn');
             const dots = document.querySelectorAll('.dot');
-            
             btns.forEach((btn, i) => btn.classList.toggle('active', i === index));
             dots.forEach((dot, i) => dot.classList.toggle('active', i === index));
         }
 
         function scrollToPage(idx) {
-            document.getElementById('snap-container').scrollTo({
-                left: idx * window.innerWidth,
-                behavior: 'smooth'
-            });
+            document.getElementById('snap-container').scrollTo({ left: idx * window.innerWidth, behavior: 'smooth' });
         }
 
-        // --- ACCOUNT LOGIC ---
+        function setCat(c) { currentCat = c; renderTabs(); }
+        function setTableFilter(c) { tableFilterCat = c; renderTabs(); load(); }
+        
+        function setType(t) {
+            currentType = t;
+            const container = document.getElementById('income-type-container');
+            
+            if (t === 'in') {
+                container.classList.remove('hidden');
+                document.getElementById('tgl-in').className = "flex-1 py-2 rounded-lg text-xs font-bold bg-white shadow-sm text-green-600";
+                document.getElementById('tgl-out').className = "flex-1 py-2 rounded-lg text-xs font-bold text-stone-400";
+                document.getElementById('add-btn').style.backgroundColor = "#7DA67D";
+            } else {
+                container.classList.add('hidden');
+                document.getElementById('tgl-out').className = "flex-1 py-2 rounded-lg text-xs font-bold bg-white shadow-sm text-red-500";
+                document.getElementById('tgl-in').className = "flex-1 py-2 rounded-lg text-xs font-bold text-stone-400";
+                document.getElementById('add-btn').style.backgroundColor = "#A67D7D";
+            }
+            renderTabs();
+        }
+
+        function setIncomeSub(s) {
+            currentIncomeSub = s;
+            document.getElementById('sub-active').className = s === 'active' ? "flex-1 py-1.5 rounded-lg text-[10px] font-black transition bg-white shadow-xs" : "flex-1 py-1.5 rounded-lg text-[10px] font-black transition text-stone-400";
+            document.getElementById('sub-passive').className = s === 'passive' ? "flex-1 py-1.5 rounded-lg text-[10px] font-black transition bg-white shadow-xs text-green-600" : "flex-1 py-1.5 rounded-lg text-[10px] font-black transition text-stone-400";
+        }
+
+        function renderTabs() {
+            const cats = currentType === 'out' ? CONFIG.monthlyCategories : CONFIG.incomeCategories;
+            document.getElementById('cat-selector').innerHTML = cats.map(c => 
+                `<div class="tab ${currentCat === c ? 'active' : ''}" onclick="setCat('${c}')">${c}</div>`).join('');
+            
+            const tableCats = ['All', ...CONFIG.monthlyCategories, ...CONFIG.incomeCategories];
+            document.getElementById('table-cat-selector').innerHTML = tableCats.map(c => 
+                `<div class="tab ${tableFilterCat === c ? 'active' : ''}" onclick="setTableFilter('${c}')">${c}</div>`).join('');
+        }
+
+        async function load() {
+            const data = await localforage.getItem('finance_v2') || [];
+            ACCOUNTS = await localforage.getItem('accounts_v3') || [];
+            
+            let mIn = 0, mOut = 0, activeIn = 0, passiveIn = 0;
+            const catSum = {};
+            CONFIG.monthlyCategories.forEach(c => catSum[c] = 0);
+
+            data.forEach(e => {
+                const v = parseFloat(e.amt);
+                if(e.type === 'in') {
+                    mIn += v;
+                    if(e.subType === 'passive') passiveIn += v;
+                    else activeIn += v;
+                } else { 
+                    mOut += v; 
+                    if(catSum[e.cat] !== undefined) catSum[e.cat] += v; 
+                }
+            });
+
+            const totals = ACCOUNTS.reduce((acc, curr) => {
+                acc[curr.type] += curr.balance; return acc;
+            }, { savings: 0, investments: 0, debt: 0 });
+
+            const surplus = mIn - mOut;
+            const netWorth = (totals.savings + totals.investments) - totals.debt;
+            const freedomPercent = mOut > 0 ? Math.min(100, (passiveIn / mOut) * 100).toFixed(0) : 0;
+
+            document.getElementById('net-worth').innerText = `£${netWorth.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            document.getElementById('stat-surplus').innerText = `Monthly Surplus: £${surplus.toLocaleString(undefined, {minimumFractionDigits:2})}`;
+            document.getElementById('val-active').innerText = `£${activeIn.toLocaleString()}`;
+            document.getElementById('val-passive').innerText = `£${passiveIn.toLocaleString()}`;
+            document.getElementById('val-freedom').innerText = `${freedomPercent}%`;
+
+            document.getElementById('wealth-grid').innerHTML = `
+                <div class="card p-3 border-stone-100"><p class="text-[8px] uppercase text-stone-400 font-bold">Savings</p><p class="text-xs font-bold">£${totals.savings.toLocaleString()}</p></div>
+                <div class="card p-3 border-stone-100"><p class="text-[8px] uppercase text-stone-400 font-bold accent-text">Invested</p><p class="text-xs font-bold">£${totals.investments.toLocaleString()}</p></div>
+                <div class="card p-3 border-stone-100"><p class="text-[8px] uppercase text-stone-400 font-bold text-red-400">Debt</p><p class="text-xs font-bold text-red-400">£${totals.debt.toLocaleString()}</p></div>`;
+
+            // Render Account List
+            document.getElementById('account-list').innerHTML = ACCOUNTS.map(a => `
+                <div class="space-y-3 p-4 bg-stone-50 rounded-2xl border border-stone-100">
+                    <div class="flex gap-2">
+                        <input type="text" value="${a.name}" onchange="updateAccountDetail(${a.id}, 'name', this.value)" class="flex-1 bg-white p-2 rounded-lg text-[10px] font-bold uppercase border-none shadow-sm">
+                        <select onchange="updateAccountDetail(${a.id}, 'type', this.value)" class="bg-white p-2 rounded-lg text-[10px] font-bold uppercase border-none shadow-sm">
+                            <option value="savings" ${a.type==='savings'?'selected':''}>Savings</option>
+                            <option value="investments" ${a.type==='investments'?'selected':''}>Invested</option>
+                            <option value="debt" ${a.type==='debt'?'selected':''}>Debt</option>
+                        </select>
+                        <button onclick="deleteAccount(${a.id})" class="text-stone-300 px-2 font-bold">✕</button>
+                    </div>
+                    <div class="flex items-center bg-white rounded-lg p-1 shadow-sm">
+                        <span class="pl-3 text-stone-400 text-xs font-bold">£</span>
+                        <input type="number" value="${a.balance}" onchange="updateAccountDetail(${a.id}, 'balance', this.value)" class="w-full bg-transparent p-2 text-sm font-bold border-none">
+                    </div>
+                </div>`).join('');
+
+            // Render Transaction List
+            document.getElementById('list').innerHTML = data.slice().reverse().map((e, idx) => {
+                const oIdx = data.length - 1 - idx;
+                const subLabel = e.type === 'in' ? `<span class="ml-1 text-[7px] bg-stone-200 text-stone-600 px-1 rounded">${e.subType || 'active'}</span>` : '';
+                return `<li class="flex justify-between items-center p-4 card shadow-sm ${editIndex === oIdx ? 'editing-highlight' : ''}">
+                    <div><p class="text-sm font-semibold text-stone-700">${e.desc}${subLabel}</p>
+                    <span class="text-[9px] font-bold uppercase text-stone-400 bg-stone-100 px-2 py-0.5 rounded">${e.cat}</span></div>
+                    <div class="text-right"><p class="font-bold ${e.type==='in'?'text-green-600':'text-stone-700'}">${e.type==='in'?'+':'-'}£${parseFloat(e.amt).toFixed(2)}</p>
+                    <div class="flex gap-2 justify-end mt-1"><button onclick="startEdit(${oIdx})" class="text-[9px] text-stone-400 uppercase font-bold">Edit</button><button onclick="deleteEntry(${oIdx})" class="text-[9px] text-red-200 uppercase font-bold">Del</button></div></div>
+                </li>`}).join('');
+
+            renderTabbedTable(data);
+            updateChart(catSum);
+        }
+
+        async function addEntry() {
+            const d = document.getElementById('desc').value, a = document.getElementById('amt').value;
+            if(!d || !a) return;
+            const data = await localforage.getItem('finance_v2') || [];
+            
+            const entry = { 
+                desc: d, 
+                amt: Math.abs(parseFloat(a)), 
+                cat: currentCat, 
+                type: currentType, 
+                subType: currentType === 'in' ? currentIncomeSub : null, // Store active/passive
+                date: editIndex !== null ? data[editIndex].date : new Date().toISOString() 
+            };
+            
+            if (editIndex !== null) data[editIndex] = entry; else data.push(entry);
+            await localforage.setItem('finance_v2', data);
+            resetForm(); load();
+        }
+
+        async function startEdit(i) {
+            const data = await localforage.getItem('finance_v2');
+            const item = data[i]; editIndex = i;
+            document.getElementById('desc').value = item.desc; 
+            document.getElementById('amt').value = item.amt;
+            setType(item.type);
+            if(item.type === 'in') setIncomeSub(item.subType || 'active');
+            setCat(item.cat);
+            document.getElementById('add-btn').innerText = "SAVE"; 
+            document.getElementById('cancel-edit').classList.remove('hidden');
+            scrollToPage(0); load();
+        }
+
+        function resetForm() {
+            editIndex = null; 
+            document.getElementById('desc').value = ''; 
+            document.getElementById('amt').value = '';
+            document.getElementById('add-btn').innerText = "ADD"; 
+            document.getElementById('cancel-edit').classList.add('hidden');
+            load();
+        }
+
+        function updateChart(sums) {
+            const ctx = document.getElementById('spendChart').getContext('2d');
+            const labels = Object.keys(sums).filter(k => sums[k] > 0), values = labels.map(k => sums[k]);
+            if (chartInstance) chartInstance.destroy();
+            chartInstance = new Chart(ctx, { type: 'doughnut', data: { labels, datasets: [{ data: values, backgroundColor: ['#7DA67D', '#9DBE9D', '#C2D6C2', '#E5E2D9', '#8A877F', '#A67D7D'], borderWidth: 0 }] }, options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9, weight: 'bold' } } } }, cutout: '78%' } });
+        }
+
+        function renderTabbedTable(data) {
+            const filtered = tableFilterCat === 'All' ? data : data.filter(i => i.cat === tableFilterCat);
+            let h = `<table><thead><tr><th>Description</th><th class="text-right">Amount</th></tr></thead><tbody>`;
+            if (filtered.length === 0) h += `<tr><td colspan="2" class="text-center py-12 text-stone-300 italic">No transactions found</td></tr>`;
+            else filtered.slice().reverse().forEach(e => {
+                h += `<tr><td class="font-medium text-stone-600">${e.desc}<br><span class="text-[8px] text-stone-400 font-bold uppercase">${new Date(e.date).toLocaleDateString()}</span></td>
+                <td class="text-right font-bold ${e.type === 'in' ? 'text-green-600' : 'text-stone-800'}">${e.type === 'in' ? '+' : '-'}£${parseFloat(e.amt).toLocaleString()}</td></tr>`;
+            });
+            document.getElementById('table-container').innerHTML = h + `</tbody></table>`;
+        }
+
         async function addAccount() {
             const name = document.getElementById('new-acc-name').value;
             const type = document.getElementById('new-acc-type').value;
@@ -200,128 +366,6 @@
             if(!confirm("Delete account?")) return;
             ACCOUNTS = ACCOUNTS.filter(a => a.id !== id);
             await localforage.setItem('accounts_v3', ACCOUNTS);
-            load();
-        }
-
-        // --- DASHBOARD UI ---
-        function renderTabs() {
-            document.getElementById('cat-selector').innerHTML = CONFIG.monthlyCategories.map(c => 
-                `<div class="tab ${currentCat === c ? 'active' : ''}" onclick="setCat('${c}')">${c}</div>`).join('');
-            const tableCats = ['All', ...CONFIG.monthlyCategories];
-            document.getElementById('table-cat-selector').innerHTML = tableCats.map(c => 
-                `<div class="tab ${tableFilterCat === c ? 'active' : ''}" onclick="setTableFilter('${c}')">${c}</div>`).join('');
-        }
-
-        function setCat(c) { currentCat = c; renderTabs(); }
-        function setTableFilter(c) { tableFilterCat = c; renderTabs(); load(); }
-        function setType(t) {
-            currentType = t;
-            document.getElementById('tgl-in').className = t === 'in' ? "flex-1 py-2 rounded-lg text-xs font-bold bg-white shadow-sm text-green-600" : "flex-1 py-2 rounded-lg text-xs font-bold text-stone-400";
-            document.getElementById('tgl-out').className = t === 'out' ? "flex-1 py-2 rounded-lg text-xs font-bold bg-white shadow-sm text-red-500" : "flex-1 py-2 rounded-lg text-xs font-bold text-stone-400";
-            document.getElementById('add-btn').style.backgroundColor = t === 'in' ? "#7DA67D" : "#A67D7D";
-        }
-
-        async function load() {
-            const data = await localforage.getItem('finance_v2') || [];
-            ACCOUNTS = await localforage.getItem('accounts_v3') || [];
-            
-            let mIn = 0, mOut = 0;
-            const catSum = {};
-            CONFIG.monthlyCategories.forEach(c => catSum[c] = 0);
-            data.forEach(e => {
-                const v = parseFloat(e.amt);
-                if(e.type === 'in') mIn += v; else { mOut += v; catSum[e.cat] += v; }
-            });
-
-            const totals = ACCOUNTS.reduce((acc, curr) => {
-                acc[curr.type] += curr.balance; return acc;
-            }, { savings: 0, investments: 0, debt: 0 });
-
-            const surplus = mIn - mOut;
-            const netWorth = (totals.savings + totals.investments) - totals.debt;
-
-            document.getElementById('net-worth').innerText = `£${netWorth.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-            document.getElementById('stat-surplus').innerText = `Monthly Surplus: £${surplus.toLocaleString(undefined, {minimumFractionDigits:2})}`;
-            document.getElementById('stat-surplus').className = surplus >= 0 
-                ? "inline-block text-[10px] font-bold mt-1 uppercase tracking-tighter px-4 py-1.5 rounded-full border border-green-100 bg-green-50 text-green-600" 
-                : "inline-block text-[10px] font-bold mt-1 uppercase tracking-tighter px-4 py-1.5 rounded-full border border-red-100 bg-red-50 text-red-500";
-
-            document.getElementById('wealth-grid').innerHTML = `
-                <div class="card p-3 border-stone-100"><p class="text-[8px] uppercase text-stone-400 font-bold">Savings</p><p class="text-xs font-bold">£${totals.savings.toLocaleString()}</p></div>
-                <div class="card p-3 border-stone-100"><p class="text-[8px] uppercase text-stone-400 font-bold accent-text">Invested</p><p class="text-xs font-bold">£${totals.investments.toLocaleString()}</p></div>
-                <div class="card p-3 border-stone-100"><p class="text-[8px] uppercase text-stone-400 font-bold text-red-400">Debt</p><p class="text-xs font-bold text-red-400">£${totals.debt.toLocaleString()}</p></div>`;
-
-            // Page 2: Account List
-            document.getElementById('account-list').innerHTML = ACCOUNTS.map(a => `
-                <div class="space-y-3 p-4 bg-stone-50 rounded-2xl border border-stone-100">
-                    <div class="flex gap-2">
-                        <input type="text" value="${a.name}" onchange="updateAccountDetail(${a.id}, 'name', this.value)" class="flex-1 bg-white p-2 rounded-lg text-[10px] font-bold uppercase border-none shadow-sm">
-                        <select onchange="updateAccountDetail(${a.id}, 'type', this.value)" class="bg-white p-2 rounded-lg text-[10px] font-bold uppercase border-none shadow-sm">
-                            <option value="savings" ${a.type==='savings'?'selected':''}>Savings</option>
-                            <option value="investments" ${a.type==='investments'?'selected':''}>Invested</option>
-                            <option value="debt" ${a.type==='debt'?'selected':''}>Debt</option>
-                        </select>
-                        <button onclick="deleteAccount(${a.id})" class="text-stone-300 px-2 font-bold">✕</button>
-                    </div>
-                    <div class="flex items-center bg-white rounded-lg p-1 shadow-sm">
-                        <span class="pl-3 text-stone-400 text-xs font-bold">£</span>
-                        <input type="number" value="${a.balance}" onchange="updateAccountDetail(${a.id}, 'balance', this.value)" class="w-full bg-transparent p-2 text-sm font-bold border-none">
-                    </div>
-                </div>`).join('');
-
-            // Page 1: List
-            document.getElementById('list').innerHTML = data.slice().reverse().map((e, idx) => {
-                const oIdx = data.length - 1 - idx;
-                return `<li class="flex justify-between items-center p-4 card shadow-sm ${editIndex === oIdx ? 'editing-highlight' : ''}">
-                    <div><p class="text-sm font-semibold text-stone-700">${e.desc}</p><span class="text-[9px] font-bold uppercase text-stone-400 bg-stone-100 px-2 py-0.5 rounded">${e.cat}</span></div>
-                    <div class="text-right"><p class="font-bold ${e.type==='in'?'text-green-600':'text-stone-700'}">${e.type==='in'?'+':'-'}£${parseFloat(e.amt).toFixed(2)}</p>
-                    <div class="flex gap-2 justify-end mt-1"><button onclick="startEdit(${oIdx})" class="text-[9px] text-stone-400 uppercase font-bold">Edit</button><button onclick="deleteEntry(${oIdx})" class="text-[9px] text-red-200 uppercase font-bold">Del</button></div></div>
-                </li>`}).join('');
-
-            renderTabbedTable(data);
-            updateChart(catSum);
-        }
-
-        function renderTabbedTable(data) {
-            const filtered = tableFilterCat === 'All' ? data : data.filter(i => i.cat === tableFilterCat);
-            let h = `<table><thead><tr><th>Description</th><th class="text-right">Amount</th></tr></thead><tbody>`;
-            if (filtered.length === 0) h += `<tr><td colspan="2" class="text-center py-12 text-stone-300 italic">No transactions found</td></tr>`;
-            else filtered.slice().reverse().forEach(e => {
-                h += `<tr><td class="font-medium text-stone-600">${e.desc}<br><span class="text-[8px] text-stone-400 font-bold uppercase">${new Date(e.date).toLocaleDateString()}</span></td>
-                <td class="text-right font-bold ${e.type === 'in' ? 'text-green-600' : 'text-stone-800'}">${e.type === 'in' ? '+' : '-'}£${parseFloat(e.amt).toLocaleString()}</td></tr>`;
-            });
-            document.getElementById('table-container').innerHTML = h + `</tbody></table>`;
-        }
-
-        function updateChart(sums) {
-            const ctx = document.getElementById('spendChart').getContext('2d');
-            const labels = Object.keys(sums).filter(k => sums[k] > 0), values = labels.map(k => sums[k]);
-            if (chartInstance) chartInstance.destroy();
-            chartInstance = new Chart(ctx, { type: 'doughnut', data: { labels, datasets: [{ data: values, backgroundColor: ['#7DA67D', '#9DBE9D', '#C2D6C2', '#E5E2D9', '#8A877F', '#A67D7D'], borderWidth: 0 }] }, options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9, weight: 'bold' } } } }, cutout: '78%' } });
-        }
-
-        async function addEntry() {
-            const d = document.getElementById('desc').value, a = document.getElementById('amt').value;
-            if(!d || !a) return;
-            const data = await localforage.getItem('finance_v2') || [];
-            const entry = { desc: d, amt: Math.abs(parseFloat(a)), cat: currentCat, type: currentType, date: editIndex !== null ? data[editIndex].date : new Date().toISOString() };
-            if (editIndex !== null) data[editIndex] = entry; else data.push(entry);
-            await localforage.setItem('finance_v2', data);
-            resetForm(); load();
-        }
-
-        async function startEdit(i) {
-            const data = await localforage.getItem('finance_v2');
-            const item = data[i]; editIndex = i;
-            document.getElementById('desc').value = item.desc; document.getElementById('amt').value = item.amt;
-            setCat(item.cat); setType(item.type);
-            document.getElementById('add-btn').innerText = "SAVE"; document.getElementById('cancel-edit').classList.remove('hidden');
-            scrollToPage(0); load();
-        }
-
-        function resetForm() {
-            editIndex = null; document.getElementById('desc').value = ''; document.getElementById('amt').value = '';
-            document.getElementById('add-btn').innerText = "ADD"; document.getElementById('cancel-edit').classList.add('hidden');
             load();
         }
 
