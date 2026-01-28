@@ -8,6 +8,30 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
+        /* Calculator Splash Styles */
+        #calc-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        .calc-container { width: 320px; background: #000; padding: 20px; border-radius: 40px; }
+        #calc-display { color: white; font-size: 70px; text-align: right; margin-bottom: 10px; padding: 10px; font-weight: 300; height: 80px; overflow: hidden; }
+        .calc-buttons { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+        .c-btn { width: 72px; height: 72px; border-radius: 50%; border: none; font-size: 30px; cursor: pointer; transition: filter 0.1s; display: flex; align-items: center; justify-content: center; }
+        .c-btn:active { filter: brightness(1.5); }
+        .c-num { background-color: #333; color: white; }
+        .c-op { background-color: #f1a33c; color: white; font-size: 35px; }
+        .c-spec { background-color: #a5a5a5; color: black; }
+        .c-zero { grid-column: span 2; width: 156px; border-radius: 40px; justify-content: flex-start; padding-left: 28px; }
+
+        /* Original App Styles */
         body { background-color: #F9F7F2; -webkit-tap-highlight-color: transparent; overflow: hidden; font-family: sans-serif; }
         .card { background-color: #FFFFFF; border-radius: 24px; border: 1px solid #E5E2D9; }
         .btn-primary { background-color: #7DA67D; color: white; border-radius: 16px; transition: transform 0.1s; }
@@ -16,33 +40,58 @@
         .tab { padding: 8px 12px; border-radius: 10px; font-size: 0.7rem; font-weight: 700; cursor: pointer; background: #F0EEE6; color: #8A877F; white-space: nowrap; text-transform: uppercase; }
         .tab.active { background: #7DA67D; color: white; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        
         #snap-container { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scroll-behavior: smooth; height: 100vh; width: 100vw; }
         .page { min-width: 100vw; height: 100%; scroll-snap-align: start; overflow-y: auto; padding: 20px; padding-bottom: 120px; }
-        
         #nav-bar { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,0.8); backdrop-filter: blur(10px); padding: 10px 20px; border-radius: 20px; border: 1px solid #E5E2D9; box-shadow: 0 4px 12px rgba(0,0,0,0.05); z-index: 50; }
-        .nav-btn { font-size: 10px; font-weight: 800; color: #8A877F; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; transition: color 0.3s; }
+        .nav-btn { font-size: 10px; font-weight: 800; color: #8A877F; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; }
         .nav-btn.active { color: #7DA67D; }
         .dot { width: 5px; height: 5px; border-radius: 50%; background: #E5E2D9; transition: all 0.3s; }
         .dot.active { background: #7DA67D; width: 12px; border-radius: 3px; }
-
         table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
         th { text-align: left; color: #8A877F; text-transform: uppercase; font-size: 9px; font-weight: 800; padding: 12px 8px; border-bottom: 1px solid #E5E2D9; }
         td { padding: 14px 8px; border-bottom: 1px dashed #F0EEE6; }
-
         .editing-highlight { border: 2px solid #7DA67D !important; background-color: #f0fdf4; }
         input, select { outline: none; border: 1px solid #E5E2D9; }
     </style>
 </head>
 <body>
 
+    <div id="calc-overlay">
+        <div class="calc-container">
+            <div id="calc-display">0</div>
+            <div class="calc-buttons">
+                <button class="c-btn c-spec" onclick="cClear()">AC</button>
+                <button class="c-btn c-spec" onclick="cSign()">+/-</button>
+                <button class="c-btn c-spec" onclick="cPercent()">%</button>
+                <button class="c-btn c-op" onclick="cOp('/')">÷</button>
+                
+                <button class="c-btn c-num" onclick="cNum('7')">7</button>
+                <button class="c-btn c-num" onclick="cNum('8')">8</button>
+                <button class="c-btn c-num" onclick="cNum('9')">9</button>
+                <button class="c-btn c-op" onclick="cOp('*')">×</button>
+                
+                <button class="c-btn c-num" onclick="cNum('4')">4</button>
+                <button class="c-btn c-num" onclick="cNum('5')">5</button>
+                <button class="c-btn c-num" onclick="cNum('6')">6</button>
+                <button class="c-btn c-op" onclick="cOp('-')">−</button>
+                
+                <button class="c-btn c-num" onclick="cNum('1')">1</button>
+                <button class="c-btn c-num" onclick="cNum('2')">2</button>
+                <button class="c-btn c-num" onclick="cNum('3')">3</button>
+                <button class="c-btn c-op" onclick="cOp('+')">+</button>
+                
+                <button class="c-btn c-num c-zero" onclick="cNum('0')">0</button>
+                <button class="c-btn c-num" onclick="cNum('.')">.</button>
+                <button class="c-btn c-op" onclick="cEval()">=</button>
+            </div>
+        </div>
+    </div>
+
     <div id="snap-container" onscroll="syncNav()">
-        
         <div class="page" id="page-dashboard">
             <header class="mb-6 text-center pt-4">
                 <h1 class="text-[10px] uppercase tracking-[0.2em] text-stone-400 font-bold mb-1">The Money Tree</h1>
                 <div id="net-worth" class="text-4xl font-light accent-text mb-2">£0.00</div>
-                
                 <div id="stat-surplus" class="inline-block text-[10px] font-bold mt-1 uppercase tracking-tighter px-4 py-1.5 rounded-full border">
                     Surplus: £0.00
                 </div>
@@ -74,20 +123,16 @@
                     <p id="form-title" class="text-[10px] uppercase text-stone-500 font-black">Quick Transaction</p>
                     <button id="cancel-edit" onclick="resetForm()" class="hidden text-[10px] font-bold text-red-400">CANCEL</button>
                 </div>
-                
                 <div class="flex gap-2 overflow-x-auto pb-4 mb-2 no-scrollbar" id="cat-selector"></div>
-
                 <div class="space-y-3">
                     <div class="flex bg-stone-100 p-1 rounded-xl">
                         <button onclick="setType('out')" id="tgl-out" class="flex-1 py-2 rounded-lg text-xs font-bold transition bg-white shadow-sm text-red-500">EXPENSE</button>
                         <button onclick="setType('in')" id="tgl-in" class="flex-1 py-2 rounded-lg text-xs font-bold transition text-stone-400">INCOME</button>
                     </div>
-
                     <div id="income-type-container" class="hidden flex gap-2 bg-stone-50 p-1 rounded-xl">
                         <button onclick="setIncomeSub('active')" id="sub-active" class="flex-1 py-1.5 rounded-lg text-[10px] font-black transition bg-white shadow-xs">ACTIVE</button>
                         <button onclick="setIncomeSub('passive')" id="sub-passive" class="flex-1 py-1.5 rounded-lg text-[10px] font-black transition text-stone-400">PASSIVE</button>
                     </div>
-
                     <input id="desc" type="text" placeholder="Description" class="w-full bg-stone-50 p-3 rounded-xl">
                     <div class="flex gap-2">
                         <input id="amt" type="number" inputmode="decimal" placeholder="0.00" class="w-full bg-stone-50 p-3 rounded-xl text-lg font-semibold">
@@ -138,6 +183,7 @@
                 </label>
             </div>
             <button onclick="resetData()" class="w-full text-[10px] text-red-300 py-10 uppercase font-black tracking-widest">Wipe All Local Data</button>
+            <button onclick="location.reload()" class="w-full text-[10px] text-stone-400 uppercase font-bold">Lock Application</button>
         </div>
     </div>
 
@@ -150,18 +196,48 @@
     </div>
 
     <script>
+        /* --- CALCULATOR LOGIC --- */
+        let cVal = "0", cPrev = "", cOpChar = null, cReset = false;
+        const SECRET = "640673";
+        const cDisp = document.getElementById("calc-display");
+
+        function cNum(n) {
+            if (cVal === "0" || cReset) { cVal = n; cReset = false; } 
+            else { cVal += n; }
+            cDisp.innerText = cVal;
+        }
+        function cOp(op) { cOpChar = op; cPrev = cVal; cReset = true; }
+        function cClear() { cVal = "0"; cPrev = ""; cOpChar = null; cDisp.innerText = "0"; }
+        function cSign() { cVal = (parseFloat(cVal) * -1).toString(); cDisp.innerText = cVal; }
+        function cPercent() { cVal = (parseFloat(cVal) / 100).toString(); cDisp.innerText = cVal; }
+        
+        function cEval() {
+            if (cVal === SECRET) {
+                document.getElementById("calc-overlay").style.display = "none";
+                return;
+            }
+            if (!cOpChar || !cPrev) return;
+            let res;
+            const p = parseFloat(cPrev), c = parseFloat(cVal);
+            switch(cOpChar) {
+                case '+': res = p + c; break;
+                case '-': res = p - c; break;
+                case '*': res = p * c; break;
+                case '/': res = p / c; break;
+            }
+            cVal = res.toString(); cOpChar = null; cPrev = ""; cReset = true;
+            cDisp.innerText = cVal;
+        }
+
+        /* --- ORIGINAL APP LOGIC --- */
         let currentCat = 'Misc';
         let tableFilterCat = 'All';
         let currentType = 'out';
-        let currentIncomeSub = 'active'; // Added: active or passive
+        let currentIncomeSub = 'active';
         let chartInstance = null;
         let editIndex = null;
         let ACCOUNTS = [];
-
-        const CONFIG = { 
-            monthlyCategories: ['Housing', 'Food', 'Transport', 'Ent', 'Bills', 'Misc'],
-            incomeCategories: ['Salary', 'Dividends', 'Rent', 'Freelance', 'Other']
-        };
+        const CONFIG = { monthlyCategories: ['Housing', 'Food', 'Transport', 'Ent', 'Bills', 'Misc'], incomeCategories: ['Salary', 'Dividends', 'Rent', 'Freelance', 'Other'] };
 
         function syncNav() {
             const container = document.getElementById('snap-container');
@@ -172,17 +248,13 @@
             dots.forEach((dot, i) => dot.classList.toggle('active', i === index));
         }
 
-        function scrollToPage(idx) {
-            document.getElementById('snap-container').scrollTo({ left: idx * window.innerWidth, behavior: 'smooth' });
-        }
-
+        function scrollToPage(idx) { document.getElementById('snap-container').scrollTo({ left: idx * window.innerWidth, behavior: 'smooth' }); }
         function setCat(c) { currentCat = c; renderTabs(); }
         function setTableFilter(c) { tableFilterCat = c; renderTabs(); load(); }
         
         function setType(t) {
             currentType = t;
             const container = document.getElementById('income-type-container');
-            
             if (t === 'in') {
                 container.classList.remove('hidden');
                 document.getElementById('tgl-in').className = "flex-1 py-2 rounded-lg text-xs font-bold bg-white shadow-sm text-green-600";
@@ -205,82 +277,40 @@
 
         function renderTabs() {
             const cats = currentType === 'out' ? CONFIG.monthlyCategories : CONFIG.incomeCategories;
-            document.getElementById('cat-selector').innerHTML = cats.map(c => 
-                `<div class="tab ${currentCat === c ? 'active' : ''}" onclick="setCat('${c}')">${c}</div>`).join('');
-            
+            document.getElementById('cat-selector').innerHTML = cats.map(c => `<div class="tab ${currentCat === c ? 'active' : ''}" onclick="setCat('${c}')">${c}</div>`).join('');
             const tableCats = ['All', ...CONFIG.monthlyCategories, ...CONFIG.incomeCategories];
-            document.getElementById('table-cat-selector').innerHTML = tableCats.map(c => 
-                `<div class="tab ${tableFilterCat === c ? 'active' : ''}" onclick="setTableFilter('${c}')">${c}</div>`).join('');
+            document.getElementById('table-cat-selector').innerHTML = tableCats.map(c => `<div class="tab ${tableFilterCat === c ? 'active' : ''}" onclick="setTableFilter('${c}')">${c}</div>`).join('');
         }
 
         async function load() {
             const data = await localforage.getItem('finance_v2') || [];
             ACCOUNTS = await localforage.getItem('accounts_v3') || [];
-            
             let mIn = 0, mOut = 0, activeIn = 0, passiveIn = 0;
             const catSum = {};
             CONFIG.monthlyCategories.forEach(c => catSum[c] = 0);
-
             data.forEach(e => {
                 const v = parseFloat(e.amt);
-                if(e.type === 'in') {
-                    mIn += v;
-                    if(e.subType === 'passive') passiveIn += v;
-                    else activeIn += v;
-                } else { 
-                    mOut += v; 
-                    if(catSum[e.cat] !== undefined) catSum[e.cat] += v; 
-                }
+                if(e.type === 'in') { mIn += v; if(e.subType === 'passive') passiveIn += v; else activeIn += v; } 
+                else { mOut += v; if(catSum[e.cat] !== undefined) catSum[e.cat] += v; }
             });
-
-            const totals = ACCOUNTS.reduce((acc, curr) => {
-                acc[curr.type] += curr.balance; return acc;
-            }, { savings: 0, investments: 0, debt: 0 });
-
+            const totals = ACCOUNTS.reduce((acc, curr) => { acc[curr.type] += curr.balance; return acc; }, { savings: 0, investments: 0, debt: 0 });
             const surplus = mIn - mOut;
             const netWorth = (totals.savings + totals.investments) - totals.debt;
             const freedomPercent = mOut > 0 ? Math.min(100, (passiveIn / mOut) * 100).toFixed(0) : 0;
-
             document.getElementById('net-worth').innerText = `£${netWorth.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
             document.getElementById('stat-surplus').innerText = `Monthly Surplus: £${surplus.toLocaleString(undefined, {minimumFractionDigits:2})}`;
             document.getElementById('val-active').innerText = `£${activeIn.toLocaleString()}`;
             document.getElementById('val-passive').innerText = `£${passiveIn.toLocaleString()}`;
             document.getElementById('val-freedom').innerText = `${freedomPercent}%`;
-
             document.getElementById('wealth-grid').innerHTML = `
                 <div class="card p-3 border-stone-100"><p class="text-[8px] uppercase text-stone-400 font-bold">Savings</p><p class="text-xs font-bold">£${totals.savings.toLocaleString()}</p></div>
                 <div class="card p-3 border-stone-100"><p class="text-[8px] uppercase text-stone-400 font-bold accent-text">Invested</p><p class="text-xs font-bold">£${totals.investments.toLocaleString()}</p></div>
                 <div class="card p-3 border-stone-100"><p class="text-[8px] uppercase text-stone-400 font-bold text-red-400">Debt</p><p class="text-xs font-bold text-red-400">£${totals.debt.toLocaleString()}</p></div>`;
-
-            // Render Account List
-            document.getElementById('account-list').innerHTML = ACCOUNTS.map(a => `
-                <div class="space-y-3 p-4 bg-stone-50 rounded-2xl border border-stone-100">
-                    <div class="flex gap-2">
-                        <input type="text" value="${a.name}" onchange="updateAccountDetail(${a.id}, 'name', this.value)" class="flex-1 bg-white p-2 rounded-lg text-[10px] font-bold uppercase border-none shadow-sm">
-                        <select onchange="updateAccountDetail(${a.id}, 'type', this.value)" class="bg-white p-2 rounded-lg text-[10px] font-bold uppercase border-none shadow-sm">
-                            <option value="savings" ${a.type==='savings'?'selected':''}>Savings</option>
-                            <option value="investments" ${a.type==='investments'?'selected':''}>Invested</option>
-                            <option value="debt" ${a.type==='debt'?'selected':''}>Debt</option>
-                        </select>
-                        <button onclick="deleteAccount(${a.id})" class="text-stone-300 px-2 font-bold">✕</button>
-                    </div>
-                    <div class="flex items-center bg-white rounded-lg p-1 shadow-sm">
-                        <span class="pl-3 text-stone-400 text-xs font-bold">£</span>
-                        <input type="number" value="${a.balance}" onchange="updateAccountDetail(${a.id}, 'balance', this.value)" class="w-full bg-transparent p-2 text-sm font-bold border-none">
-                    </div>
-                </div>`).join('');
-
-            // Render Transaction List
+            document.getElementById('account-list').innerHTML = ACCOUNTS.map(a => `<div class="space-y-3 p-4 bg-stone-50 rounded-2xl border border-stone-100"><div class="flex gap-2"><input type="text" value="${a.name}" onchange="updateAccountDetail(${a.id}, 'name', this.value)" class="flex-1 bg-white p-2 rounded-lg text-[10px] font-bold uppercase border-none shadow-sm"><select onchange="updateAccountDetail(${a.id}, 'type', this.value)" class="bg-white p-2 rounded-lg text-[10px] font-bold uppercase border-none shadow-sm"><option value="savings" ${a.type==='savings'?'selected':''}>Savings</option><option value="investments" ${a.type==='investments'?'selected':''}>Invested</option><option value="debt" ${a.type==='debt'?'selected':''}>Debt</option></select><button onclick="deleteAccount(${a.id})" class="text-stone-300 px-2 font-bold">✕</button></div><div class="flex items-center bg-white rounded-lg p-1 shadow-sm"><span class="pl-3 text-stone-400 text-xs font-bold">£</span><input type="number" value="${a.balance}" onchange="updateAccountDetail(${a.id}, 'balance', this.value)" class="w-full bg-transparent p-2 text-sm font-bold border-none"></div></div>`).join('');
             document.getElementById('list').innerHTML = data.slice().reverse().map((e, idx) => {
                 const oIdx = data.length - 1 - idx;
                 const subLabel = e.type === 'in' ? `<span class="ml-1 text-[7px] bg-stone-200 text-stone-600 px-1 rounded">${e.subType || 'active'}</span>` : '';
-                return `<li class="flex justify-between items-center p-4 card shadow-sm ${editIndex === oIdx ? 'editing-highlight' : ''}">
-                    <div><p class="text-sm font-semibold text-stone-700">${e.desc}${subLabel}</p>
-                    <span class="text-[9px] font-bold uppercase text-stone-400 bg-stone-100 px-2 py-0.5 rounded">${e.cat}</span></div>
-                    <div class="text-right"><p class="font-bold ${e.type==='in'?'text-green-600':'text-stone-700'}">${e.type==='in'?'+':'-'}£${parseFloat(e.amt).toFixed(2)}</p>
-                    <div class="flex gap-2 justify-end mt-1"><button onclick="startEdit(${oIdx})" class="text-[9px] text-stone-400 uppercase font-bold">Edit</button><button onclick="deleteEntry(${oIdx})" class="text-[9px] text-red-200 uppercase font-bold">Del</button></div></div>
-                </li>`}).join('');
-
+                return `<li class="flex justify-between items-center p-4 card shadow-sm ${editIndex === oIdx ? 'editing-highlight' : ''}"><div><p class="text-sm font-semibold text-stone-700">${e.desc}${subLabel}</p><span class="text-[9px] font-bold uppercase text-stone-400 bg-stone-100 px-2 py-0.5 rounded">${e.cat}</span></div><div class="text-right"><p class="font-bold ${e.type==='in'?'text-green-600':'text-stone-700'}">${e.type==='in'?'+':'-'}£${parseFloat(e.amt).toFixed(2)}</p><div class="flex gap-2 justify-end mt-1"><button onclick="startEdit(${oIdx})" class="text-[9px] text-stone-400 uppercase font-bold">Edit</button><button onclick="deleteEntry(${oIdx})" class="text-[9px] text-red-200 uppercase font-bold">Del</button></div></div></li>`}).join('');
             renderTabbedTable(data);
             updateChart(catSum);
         }
@@ -289,16 +319,7 @@
             const d = document.getElementById('desc').value, a = document.getElementById('amt').value;
             if(!d || !a) return;
             const data = await localforage.getItem('finance_v2') || [];
-            
-            const entry = { 
-                desc: d, 
-                amt: Math.abs(parseFloat(a)), 
-                cat: currentCat, 
-                type: currentType, 
-                subType: currentType === 'in' ? currentIncomeSub : null, // Store active/passive
-                date: editIndex !== null ? data[editIndex].date : new Date().toISOString() 
-            };
-            
+            const entry = { desc: d, amt: Math.abs(parseFloat(a)), cat: currentCat, type: currentType, subType: currentType === 'in' ? currentIncomeSub : null, date: editIndex !== null ? data[editIndex].date : new Date().toISOString() };
             if (editIndex !== null) data[editIndex] = entry; else data.push(entry);
             await localforage.setItem('finance_v2', data);
             resetForm(); load();
@@ -317,14 +338,7 @@
             scrollToPage(0); load();
         }
 
-        function resetForm() {
-            editIndex = null; 
-            document.getElementById('desc').value = ''; 
-            document.getElementById('amt').value = '';
-            document.getElementById('add-btn').innerText = "ADD"; 
-            document.getElementById('cancel-edit').classList.add('hidden');
-            load();
-        }
+        function resetForm() { editIndex = null; document.getElementById('desc').value = ''; document.getElementById('amt').value = ''; document.getElementById('add-btn').innerText = "ADD"; document.getElementById('cancel-edit').classList.add('hidden'); load(); }
 
         function updateChart(sums) {
             const ctx = document.getElementById('spendChart').getContext('2d');
@@ -337,61 +351,16 @@
             const filtered = tableFilterCat === 'All' ? data : data.filter(i => i.cat === tableFilterCat);
             let h = `<table><thead><tr><th>Description</th><th class="text-right">Amount</th></tr></thead><tbody>`;
             if (filtered.length === 0) h += `<tr><td colspan="2" class="text-center py-12 text-stone-300 italic">No transactions found</td></tr>`;
-            else filtered.slice().reverse().forEach(e => {
-                h += `<tr><td class="font-medium text-stone-600">${e.desc}<br><span class="text-[8px] text-stone-400 font-bold uppercase">${new Date(e.date).toLocaleDateString()}</span></td>
-                <td class="text-right font-bold ${e.type === 'in' ? 'text-green-600' : 'text-stone-800'}">${e.type === 'in' ? '+' : '-'}£${parseFloat(e.amt).toLocaleString()}</td></tr>`;
-            });
+            else filtered.slice().reverse().forEach(e => { h += `<tr><td class="font-medium text-stone-600">${e.desc}<br><span class="text-[8px] text-stone-400 font-bold uppercase">${new Date(e.date).toLocaleDateString()}</span></td><td class="text-right font-bold ${e.type === 'in' ? 'text-green-600' : 'text-stone-800'}">${e.type === 'in' ? '+' : '-'}£${parseFloat(e.amt).toLocaleString()}</td></tr>`; });
             document.getElementById('table-container').innerHTML = h + `</tbody></table>`;
         }
 
-        async function addAccount() {
-            const name = document.getElementById('new-acc-name').value;
-            const type = document.getElementById('new-acc-type').value;
-            if(!name) return;
-            ACCOUNTS.push({ id: Date.now(), name, type, balance: 0 });
-            await localforage.setItem('accounts_v3', ACCOUNTS);
-            document.getElementById('new-acc-name').value = '';
-            load();
-        }
-
-        async function updateAccountDetail(id, field, value) {
-            const idx = ACCOUNTS.findIndex(a => a.id === id);
-            if (field === 'balance') ACCOUNTS[idx].balance = parseFloat(value) || 0;
-            else ACCOUNTS[idx][field] = value;
-            await localforage.setItem('accounts_v3', ACCOUNTS);
-            load();
-        }
-
-        async function deleteAccount(id) {
-            if(!confirm("Delete account?")) return;
-            ACCOUNTS = ACCOUNTS.filter(a => a.id !== id);
-            await localforage.setItem('accounts_v3', ACCOUNTS);
-            load();
-        }
-
-        async function deleteEntry(i) {
-            if(!confirm("Delete?")) return;
-            const d = await localforage.getItem('finance_v2');
-            d.splice(i, 1); await localforage.setItem('finance_v2', d); load();
-        }
-
-        async function exportJSON() {
-            const d = await localforage.getItem('finance_v2'), a = await localforage.getItem('accounts_v3');
-            const b = new Blob([JSON.stringify({payload: d, accounts: a})], {type:'application/json'});
-            const link = document.createElement('a'); link.href = URL.createObjectURL(b); link.download='finance_pro_backup.json'; link.click();
-        }
-
-        async function importJSON(e) {
-            const f = e.target.files[0], r = new FileReader();
-            r.onload = async (ev) => { 
-                const i = JSON.parse(ev.target.result); 
-                await localforage.setItem('finance_v2', i.payload); 
-                await localforage.setItem('accounts_v3', i.accounts);
-                load(); 
-            };
-            r.readAsText(f);
-        }
-
+        async function addAccount() { const name = document.getElementById('new-acc-name').value; const type = document.getElementById('new-acc-type').value; if(!name) return; ACCOUNTS.push({ id: Date.now(), name, type, balance: 0 }); await localforage.setItem('accounts_v3', ACCOUNTS); document.getElementById('new-acc-name').value = ''; load(); }
+        async function updateAccountDetail(id, field, value) { const idx = ACCOUNTS.findIndex(a => a.id === id); if (field === 'balance') ACCOUNTS[idx].balance = parseFloat(value) || 0; else ACCOUNTS[idx][field] = value; await localforage.setItem('accounts_v3', ACCOUNTS); load(); }
+        async function deleteAccount(id) { if(!confirm("Delete account?")) return; ACCOUNTS = ACCOUNTS.filter(a => a.id !== id); await localforage.setItem('accounts_v3', ACCOUNTS); load(); }
+        async function deleteEntry(i) { if(!confirm("Delete?")) return; const d = await localforage.getItem('finance_v2'); d.splice(i, 1); await localforage.setItem('finance_v2', d); load(); }
+        async function exportJSON() { const d = await localforage.getItem('finance_v2'), a = await localforage.getItem('accounts_v3'); const b = new Blob([JSON.stringify({payload: d, accounts: a})], {type:'application/json'}); const link = document.createElement('a'); link.href = URL.createObjectURL(b); link.download='finance_pro_backup.json'; link.click(); }
+        async function importJSON(e) { const f = e.target.files[0], r = new FileReader(); r.onload = async (ev) => { const i = JSON.parse(ev.target.result); await localforage.setItem('finance_v2', i.payload); await localforage.setItem('accounts_v3', i.accounts); load(); }; r.readAsText(f); }
         async function resetData() { if(confirm("Wipe all data?")) { await localforage.clear(); location.reload(); } }
 
         document.addEventListener('DOMContentLoaded', () => { renderTabs(); load(); });
